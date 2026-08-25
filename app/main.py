@@ -54,5 +54,14 @@ def health():
     return {"status": "ok"}
 
 
-# Serve the frontend last so /api/* routes above take priority.
-app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+@app.get("/")
+def index():
+    # Explicit route for the bare root: StaticFiles(html=True) mounted at "/"
+    # fails to resolve the index on some Starlette versions when the request
+    # path is exactly "/", so serve it directly instead of relying on that.
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+# Serve the frontend's other assets (style.css, app.js, ...) last so /api/*
+# and the explicit "/" route above take priority.
+app.mount("/", StaticFiles(directory=STATIC_DIR), name="static")
