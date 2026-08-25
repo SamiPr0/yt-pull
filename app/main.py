@@ -11,7 +11,7 @@ from app.models import ResolveRequest
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
-app = FastAPI(title="yt-downloader", docs_url="/api/docs")
+app = FastAPI(title="yt-pull", docs_url="/api/docs")
 
 
 @app.post("/api/resolve")

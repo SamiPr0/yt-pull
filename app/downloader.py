@@ -151,7 +151,7 @@ def download_to_temp(url: str, quality: str | None) -> tuple[str, str, str]:
     """
     assert_youtube_url(url)
 
-    tmpdir = tempfile.mkdtemp(prefix="ytqd_")
+    tmpdir = tempfile.mkdtemp(prefix="ytpull_")
     ydl_opts = {
         "format": _format_selector(quality),
         "outtmpl": str(Path(tmpdir) / "%(title).150B.%(ext)s"),

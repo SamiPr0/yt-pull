@@ -1,6 +1,10 @@
-# yt-downloader
+# yt-pull
 
 Application web pour télécharger des vidéos YouTube en `.mp4`, dans la qualité de ton choix — vidéo unique, playlist entière, ou liste de liens collés en une fois.
+
+**Essayer en ligne : [yt-pull.onrender.com](https://yt-pull.onrender.com/)**
+
+> Hébergé sur le plan gratuit de Render : le service peut se mettre en veille après une période d'inactivité et prendre ~30-50s à se réveiller au premier chargement.
 
 **Rien n'est stocké côté serveur.** Chaque téléchargement passe par un dossier temporaire créé à la volée, streamé directement vers le navigateur du client, puis supprimé dès que l'envoi est terminé. Aucun fichier vidéo, aucune métadonnée persistante, aucun volume Docker monté — le dossier `downloads/` n'existe pas, et `.gitignore` bloque tout média qui traînerait par erreur.
 

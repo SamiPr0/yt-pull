@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 
 # Ephemeral scratch space only — wiped on every container restart, nothing persisted
-RUN mkdir -p /tmp/yt-downloader
+RUN mkdir -p /tmp/yt-pull
 
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
