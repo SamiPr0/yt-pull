@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>yt-downloader</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">▶</span>
+      <span class="brand-name">yt-downloader</span>
+    </div>
+    <p class="tagline">Vidéo, playlist ou liste de liens — rien n'est stocké sur le serveur.</p>
+  </header>
+
+  <main class="container">
+    <section class="input-card">
+      <label for="urls" class="field-label">Lien(s) YouTube</label>
+      <textarea
+        id="urls"
+        rows="4"
+        placeholder="Colle ici un lien de vidéo, une playlist, ou plusieurs liens (un par ligne)&#10;https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/playlist?list=..."
+      ></textarea>
+
+      <div class="controls-row">
+        <div class="quality-picker">
+          <label for="defaultQuality">Qualité par défaut</label>
+          <select id="defaultQuality">
+            <option value="best">Meilleure disponible</option>
+            <option value="2160p">2160p (4K)</option>
+            <option value="1440p">1440p (2K)</option>
+            <option value="1080p" selected>1080p</option>
+            <option value="720p">720p</option>
+            <option value="480p">480p</option>
+            <option value="360p">360p</option>
+          </select>
+        </div>
+        <button id="analyzeBtn" class="btn btn-primary">
+          <span class="btn-label">Analyser</span>
+          <span class="spinner hidden"></span>
+        </button>
+      </div>
+
+      <p id="globalError" class="error-msg hidden"></p>
+    </section>
+
+    <section id="resultsSection" class="results-section hidden">
+      <div class="results-header">
+        <h2 id="resultsTitle">Résultats</h2>
+        <button id="downloadAllBtn" class="btn btn-secondary hidden">Tout télécharger</button>
+      </div>
+      <div id="resultsList" class="results-list"></div>
+    </section>
+
+    <footer class="disclaimer">
+      Outil personnel basé sur <code>yt-dlp</code>. Respecte les droits d'auteur et les conditions
+      d'utilisation de YouTube : ne télécharge que du contenu que tu as le droit d'enregistrer.
+    </footer>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
