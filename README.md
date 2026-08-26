@@ -15,6 +15,7 @@ Application web pour télécharger des vidéos YouTube en `.mp4`, dans la qualit
 - **Liste de liens** — colle plusieurs liens (un par ligne, vidéos et/ou playlists mélangées), tout est résolu et affiché en une fois.
 - **Choix de la qualité** — sélecteur global (appliqué par défaut à chaque résultat) + sélecteur par vidéo (2160p → 360p, ou "meilleure disponible"). yt-dlp retombe automatiquement sur la qualité immédiatement inférieure si celle demandée n'existe pas pour une vidéo donnée.
 - **Sortie** — toujours du `.mp4` (fusion vidéo+audio via ffmpeg si nécessaire).
+- **Anti-spam** — limitation de débit par IP (20 requêtes/min sur `/api/resolve`, 10/min sur `/api/download`) pour éviter les abus, sans dépendance externe ni compte tiers.
 
 ## Architecture
 
@@ -58,6 +59,8 @@ uvicorn app.main:app --reload
 | `POST` | `/api/resolve` | `{"urls": ["...", "..."]}` → liste d'items résolus (titre, miniature, durée, qualités disponibles, ou erreur par lien). |
 | `GET` | `/api/download?url=...&quality=1080p` | Télécharge et stream un `.mp4` unique. `quality` accepte `best`, `2160p`, `1440p`, `1080p`, `720p`, `480p`, `360p`. |
 | `GET` | `/api/health` | Healthcheck. |
+
+Au-delà des limites de débit ci-dessus, l'API répond `429 Too Many Requests`.
 
 ## Avertissement
 

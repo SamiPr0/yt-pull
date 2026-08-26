@@ -33,9 +33,9 @@ def assert_youtube_url(url: str) -> None:
     try:
         host = urlparse(url).hostname or ""
     except ValueError as exc:
-        raise InvalidUrlError(f"URL invalide : {url}") from exc
+        raise InvalidUrlError(f"Invalid URL: {url}") from exc
     if host.lower() not in ALLOWED_HOSTS:
-        raise InvalidUrlError(f"Seuls les liens YouTube sont acceptés : {url}")
+        raise InvalidUrlError(f"Only YouTube links are accepted: {url}")
 
 
 def _thumbnail_of(entry: dict) -> str | None:
@@ -67,11 +67,11 @@ def resolve(urls: list[str]) -> list[dict]:
             ) as ydl:
                 info = ydl.extract_info(url, download=False)
         except Exception as exc:  # noqa: BLE001 - surface any extraction failure to the UI
-            items.append({"url": url, "error": f"Impossible d'analyser ce lien : {exc}"})
+            items.append({"url": url, "error": f"Could not read this link: {exc}"})
             continue
 
         if info is None:
-            items.append({"url": url, "error": "Aucune information trouvée pour ce lien."})
+            items.append({"url": url, "error": "No information found for this link."})
             continue
 
         if info.get("_type") == "playlist" or info.get("entries"):
@@ -171,7 +171,7 @@ def download_to_temp(url: str, quality: str | None) -> tuple[str, str, str]:
         if not produced:
             produced = [p for p in Path(tmpdir).iterdir() if p.is_file()]
         if not produced:
-            raise RuntimeError("Le téléchargement n'a produit aucun fichier.")
+            raise RuntimeError("The download did not produce any file.")
 
         filepath = produced[0]
         return str(filepath), filepath.name, tmpdir

@@ -11,7 +11,7 @@ let currentItems = [];
 
 function setLoading(isLoading) {
   analyzeBtn.disabled = isLoading;
-  analyzeBtn.querySelector(".btn-label").textContent = isLoading ? "Analyse..." : "Analyser";
+  analyzeBtn.querySelector(".btn-label").textContent = isLoading ? "Analyzing..." : "Analyze";
   analyzeBtn.querySelector(".spinner").classList.toggle("hidden", !isLoading);
 }
 
@@ -60,7 +60,7 @@ function renderItem(item, index) {
       </div>
       <div class="video-actions">
         <select class="quality-select">${qualityOptions(item)}</select>
-        <button class="dl-btn" data-action="download">Télécharger</button>
+        <button class="dl-btn" data-action="download">Download</button>
       </div>
     </div>`;
 }
@@ -74,7 +74,7 @@ function escapeHtml(str) {
 function render() {
   resultsList.innerHTML = currentItems.map(renderItem).join("");
   const downloadable = currentItems.filter((i) => !i.error).length;
-  resultsTitle.textContent = `Résultats (${currentItems.length})`;
+  resultsTitle.textContent = `Results (${currentItems.length})`;
   downloadAllBtn.classList.toggle("hidden", downloadable < 2);
 }
 
@@ -96,7 +96,7 @@ resultsList.addEventListener("click", (e) => {
   const item = currentItems[index];
   const quality = card.querySelector(".quality-select")?.value;
   triggerDownload(item.url, quality);
-  btn.textContent = "Lancé ✓";
+  btn.textContent = "Started ✓";
   btn.classList.add("done");
 });
 
@@ -109,7 +109,7 @@ downloadAllBtn.addEventListener("click", async () => {
     triggerDownload(item.url, quality);
     const btn = card.querySelector(".dl-btn");
     if (btn) {
-      btn.textContent = "Lancé ✓";
+      btn.textContent = "Started ✓";
       btn.classList.add("done");
     }
     // Stagger requests so the browser doesn't block "multiple downloads at once".
@@ -125,7 +125,7 @@ analyzeBtn.addEventListener("click", async () => {
     .filter(Boolean);
 
   if (!urls.length) {
-    globalError.textContent = "Colle au moins un lien YouTube.";
+    globalError.textContent = "Paste at least one YouTube link.";
     globalError.classList.remove("hidden");
     return;
   }
@@ -141,13 +141,13 @@ analyzeBtn.addEventListener("click", async () => {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || "Erreur inconnue.");
+      throw new Error(data.detail || "Unknown error.");
     }
     currentItems = data.items || [];
     render();
     resultsSection.classList.remove("hidden");
   } catch (err) {
-    globalError.textContent = err.message || "Une erreur est survenue.";
+    globalError.textContent = err.message || "Something went wrong.";
     globalError.classList.remove("hidden");
   } finally {
     setLoading(false);
