@@ -17,7 +17,9 @@ const searchView = document.getElementById("searchView");
 const downloadsView = document.getElementById("downloadsView");
 const downloadsList = document.getElementById("downloadsList");
 const backBtn = document.getElementById("backBtn");
-const langSelect = document.getElementById("langSelect");
+const langButton = document.getElementById("langButton");
+const langButtonLabel = document.getElementById("langButtonLabel");
+const langMenu = document.getElementById("langMenu");
 
 let currentItems = [];
 let downloadIdCounter = 0;
@@ -38,20 +40,55 @@ function applyStaticTranslations() {
   });
 }
 
-function populateLangSelect() {
-  langSelect.innerHTML = SUPPORTED_LANGS.map(
-    (code) => `<option value="${code}" ${code === getLang() ? "selected" : ""}>${TRANSLATIONS[code].langName}</option>`
+function populateLangMenu() {
+  langButtonLabel.textContent = TRANSLATIONS[getLang()].langName;
+  langMenu.innerHTML = SUPPORTED_LANGS.map(
+    (code) =>
+      `<li role="option" data-lang="${code}" aria-selected="${code === getLang()}">${TRANSLATIONS[code].langName}</li>`
   ).join("");
 }
 
-langSelect.addEventListener("change", () => {
-  setLang(langSelect.value);
+function closeLangMenu() {
+  langMenu.classList.add("hidden");
+  langButton.setAttribute("aria-expanded", "false");
+}
+
+function openLangMenu() {
+  langMenu.classList.remove("hidden");
+  langButton.setAttribute("aria-expanded", "true");
+}
+
+langButton.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (langMenu.classList.contains("hidden")) openLangMenu();
+  else closeLangMenu();
+});
+
+langMenu.addEventListener("click", (e) => {
+  const li = e.target.closest("[data-lang]");
+  if (!li) return;
+  setLang(li.dataset.lang);
+  populateLangMenu();
+  closeLangMenu();
   applyStaticTranslations();
   render();
   renderDownloadsList();
 });
 
-populateLangSelect();
+document.addEventListener("click", (e) => {
+  if (!langMenu.classList.contains("hidden") && !e.target.closest(".lang-switcher")) {
+    closeLangMenu();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !langMenu.classList.contains("hidden")) {
+    closeLangMenu();
+    langButton.focus();
+  }
+});
+
+populateLangMenu();
 applyStaticTranslations();
 
 // ---------- Helpers ----------

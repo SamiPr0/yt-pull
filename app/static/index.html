@@ -46,7 +46,15 @@
           </svg>
           <span data-i18n="githubLinkText">Source on GitHub</span>
         </a>
-        <select id="langSelect" class="lang-select" aria-label="Language"></select>
+        <div class="lang-switcher">
+          <button id="langButton" class="lang-select" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span id="langButtonLabel">English</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <ul id="langMenu" class="lang-menu hidden" role="listbox" aria-label="Language"></ul>
+        </div>
       </div>
     </div>
     <p class="tagline" data-i18n="tagline">Free YouTube downloader — paste a link, pick your quality, get your MP4.</p>
