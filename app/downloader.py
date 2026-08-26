@@ -28,19 +28,27 @@ ALLOWED_HOSTS = {
 DEFAULT_QUALITY_LADDER = ["2160p", "1440p", "1080p", "720p", "480p", "360p"]
 
 
+POT_PROVIDER_BINARY = "/usr/local/bin/bgutil-pot"
+
+
 def _base_ydl_opts() -> dict:
     """Options merged into every yt-dlp call.
 
     Cloud/datacenter IPs (Render, AWS, etc.) get hit with YouTube's "Sign in
-    to confirm you're not a bot" wall far more often than home connections.
-    The android player client uses a different endpoint that isn't gated by
-    that check as often as the web client. If that still isn't enough, drop
-    a Netscape-format cookies.txt file somewhere on the server (exported
-    from a real logged-in browser session, e.g. via the "Get cookies.txt
-    LOCALLY" extension) and point YTDLP_COOKIES_FILE at it — cookies are the
-    most reliable fix.
+    to confirm you're not a bot" wall far more often than home connections,
+    because the web client can't prove a request came from a real browser
+    without a proof-of-origin (PO) token. The bgutil-ytdlp-pot-provider
+    plugin (installed in the Dockerfile) generates real tokens locally, no
+    personal account or cookies required — see downloader's Docker layer.
+    The android client is kept as a second-choice fallback in case the
+    token provider is unavailable (e.g. running outside Docker locally).
     """
-    opts: dict = {"extractor_args": {"youtube": {"player_client": ["android", "web"]}}}
+    opts: dict = {
+        "extractor_args": {
+            "youtube": {"player_client": ["web", "android"]},
+            "youtubepot-bgutilcli": {"cli_path": [POT_PROVIDER_BINARY]},
+        }
+    }
     cookies_file = os.environ.get("YTDLP_COOKIES_FILE")
     if cookies_file and Path(cookies_file).is_file():
         opts["cookiefile"] = cookies_file
