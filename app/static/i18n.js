@@ -8,6 +8,9 @@ const TRANSLATIONS = {
     metaDescription:
       "Paste a link, pick a quality, get an MP4. Free YouTube downloader for single videos, playlists, or a batch of links — nothing stored on the server.",
     githubLinkText: "Source on GitHub",
+    desktopAppTitle: "Prefer a desktop app?",
+    desktopAppDesc: "Download yt-pull for Windows — one file, nothing to install, works fully from your own PC.",
+    desktopAppButton: "Download for Windows",
     tagline: "Free YouTube downloader — paste a link, pick your quality, get your MP4.",
     step1: "Paste link(s)",
     step2: "Pick a quality",
@@ -58,6 +61,9 @@ const TRANSLATIONS = {
     metaDescription:
       "Colle un lien, choisis une qualité, récupère un MP4. Téléchargeur YouTube gratuit pour vidéos, listes de lecture ou lots de liens — rien n'est stocké sur le serveur.",
     githubLinkText: "Code source sur GitHub",
+    desktopAppTitle: "Tu préfères une application de bureau ?",
+    desktopAppDesc: "Télécharge yt-pull pour Windows — un seul fichier, rien à installer, fonctionne entièrement depuis ton PC.",
+    desktopAppButton: "Télécharger pour Windows",
     tagline: "Téléchargeur YouTube gratuit — colle un lien, choisis ta qualité, récupère ton MP4.",
     step1: "Colle le(s) lien(s)",
     step2: "Choisis une qualité",
