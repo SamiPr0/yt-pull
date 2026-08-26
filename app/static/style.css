@@ -211,35 +211,55 @@ body {
   flex-direction: column;
 }
 
-.desktop-promo {
+.landing {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 80px 20px 40px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 24px;
-  padding: 14px 18px;
-  background: rgba(24, 24, 24, 0.5);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius);
+  text-align: center;
 }
 
-.desktop-promo-text strong {
-  display: block;
-  font-size: 14px;
-  color: var(--text);
+.landing-mark {
+  border-radius: 16px;
+  margin-bottom: 20px;
 }
 
-.desktop-promo-text p {
-  margin: 2px 0 0;
+.landing-name {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+}
+
+.landing-tagline {
+  color: var(--text-dim);
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0 0 32px;
+}
+
+.landing-download-btn {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+.landing-note {
+  margin: 14px 0 0;
   font-size: 12px;
   color: var(--text-dim);
 }
 
-.desktop-promo .btn {
-  flex-shrink: 0;
+.landing-github-link {
+  margin-top: 40px;
+}
+
+.landing-disclaimer {
+  margin-top: auto;
+  padding-top: 40px;
 }
 
 .input-card {

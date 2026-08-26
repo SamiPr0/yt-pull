@@ -39,6 +39,7 @@ def _open_browser_when_ready(url: str) -> None:
 
 def main() -> None:
     _prepend_bundled_ffmpeg_to_path()
+    os.environ["YTPULL_DESKTOP"] = "1"
 
     port = 8000
     url = f"http://127.0.0.1:{port}"

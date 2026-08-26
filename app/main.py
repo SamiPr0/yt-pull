@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -72,7 +73,12 @@ def index():
     # Explicit route for the bare root: StaticFiles(html=True) mounted at "/"
     # fails to resolve the index on some Starlette versions when the request
     # path is exactly "/", so serve it directly instead of relying on that.
-    return FileResponse(STATIC_DIR / "index.html")
+    #
+    # The public web deployment (Render, etc.) only needs to offer the
+    # desktop app download — the full tool only runs locally through the
+    # .exe, which sets YTPULL_DESKTOP=1 to get the real app UI instead.
+    page = "index.html" if os.environ.get("YTPULL_DESKTOP") else "landing.html"
+    return FileResponse(STATIC_DIR / page)
 
 
 # Serve the frontend's other assets (style.css, app.js, ...) last so /api/*
