@@ -23,6 +23,11 @@ html, body {
   min-height: 100vh;
 }
 
+body {
+  display: flex;
+  flex-direction: column;
+}
+
 .topbar {
   padding: 32px 20px 24px;
   border-bottom: 1px solid var(--border);
@@ -111,9 +116,13 @@ html, body {
 }
 
 .container {
+  flex: 1;
+  width: 100%;
   max-width: 780px;
   margin: 0 auto;
   padding: 32px 20px 60px;
+  display: flex;
+  flex-direction: column;
 }
 
 .input-card {
@@ -418,7 +427,8 @@ select {
 .hidden { display: none !important; }
 
 .disclaimer {
-  margin-top: 48px;
+  margin-top: auto;
+  padding-top: 48px;
   text-align: center;
   font-size: 12px;
   color: var(--text-dim);
