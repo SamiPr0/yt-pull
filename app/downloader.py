@@ -5,6 +5,7 @@ as soon as it has been streamed to the client (see main.py).
 """
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import tempfile
@@ -25,6 +26,25 @@ ALLOWED_HOSTS = {
 }
 
 DEFAULT_QUALITY_LADDER = ["2160p", "1440p", "1080p", "720p", "480p", "360p"]
+
+
+def _base_ydl_opts() -> dict:
+    """Options merged into every yt-dlp call.
+
+    Cloud/datacenter IPs (Render, AWS, etc.) get hit with YouTube's "Sign in
+    to confirm you're not a bot" wall far more often than home connections.
+    The android player client uses a different endpoint that isn't gated by
+    that check as often as the web client. If that still isn't enough, drop
+    a Netscape-format cookies.txt file somewhere on the server (exported
+    from a real logged-in browser session, e.g. via the "Get cookies.txt
+    LOCALLY" extension) and point YTDLP_COOKIES_FILE at it — cookies are the
+    most reliable fix.
+    """
+    opts: dict = {"extractor_args": {"youtube": {"player_client": ["android", "web"]}}}
+    cookies_file = os.environ.get("YTDLP_COOKIES_FILE")
+    if cookies_file and Path(cookies_file).is_file():
+        opts["cookiefile"] = cookies_file
+    return opts
 
 
 class InvalidUrlError(ValueError):
@@ -65,7 +85,13 @@ def resolve(urls: list[str], lang: str | None = None) -> list[dict]:
 
         try:
             with YoutubeDL(
-                {"quiet": True, "no_warnings": True, "extract_flat": "in_playlist", "skip_download": True}
+                {
+                    **_base_ydl_opts(),
+                    "quiet": True,
+                    "no_warnings": True,
+                    "extract_flat": "in_playlist",
+                    "skip_download": True,
+                }
             ) as ydl:
                 info = ydl.extract_info(url, download=False)
         except Exception as exc:  # noqa: BLE001 - surface any extraction failure to the UI
@@ -101,7 +127,13 @@ def resolve(urls: list[str], lang: str | None = None) -> list[dict]:
         else:
             try:
                 with YoutubeDL(
-                    {"quiet": True, "no_warnings": True, "skip_download": True, "noplaylist": True}
+                    {
+                        **_base_ydl_opts(),
+                        "quiet": True,
+                        "no_warnings": True,
+                        "skip_download": True,
+                        "noplaylist": True,
+                    }
                 ) as ydl2:
                     full = ydl2.extract_info(url, download=False) or info
             except Exception:  # noqa: BLE001 - fall back to the flat info we already have
@@ -155,6 +187,7 @@ def download_to_temp(url: str, quality: str | None, lang: str | None = None) -> 
 
     tmpdir = tempfile.mkdtemp(prefix="ytpull_")
     ydl_opts = {
+        **_base_ydl_opts(),
         "format": _format_selector(quality),
         "outtmpl": str(Path(tmpdir) / "%(title).150B.%(ext)s"),
         "merge_output_format": "mp4",
