@@ -389,8 +389,10 @@ select {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  justify-content: flex-end;
   row-gap: 10px;
   gap: 16px;
+  margin-left: auto;
 }
 
 .select-all,
