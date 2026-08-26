@@ -10,6 +10,7 @@ const resultsList = document.getElementById("resultsList");
 const downloadAllBtn = document.getElementById("downloadAllBtn");
 const rateLimitHint = document.getElementById("rateLimitHint");
 const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+const selectAllLabel = document.getElementById("selectAllLabel");
 const searchView = document.getElementById("searchView");
 const downloadsView = document.getElementById("downloadsView");
 const downloadsList = document.getElementById("downloadsList");
@@ -179,6 +180,7 @@ function render() {
   const downloadable = selectableItems().length;
   resultsTitle.textContent = `Results (${currentItems.length})`;
   downloadAllBtn.classList.toggle("hidden", downloadable < 2);
+  selectAllLabel.classList.toggle("hidden", downloadable < 2);
   syncSelectAllCheckbox();
   syncDownloadAllLabel();
 }
@@ -256,11 +258,15 @@ function renderDownloadRow(entry) {
         </div>
         <div class="video-actions">${actionHtml}</div>
       </div>
-      <div class="progress-track ${entry.status === "error" ? "error" : ""}">
+      <div class="progress-track ${entry.status === "error" ? "error" : ""} ${isIndeterminate(entry) ? "indeterminate" : ""}">
         <div class="progress-fill" style="width:${pct}%"></div>
       </div>
       <p class="progress-label">${escapeHtml(entry.statusText)}</p>
     </div>`;
+}
+
+function isIndeterminate(entry) {
+  return entry.status === "starting" || entry.status === "waiting";
 }
 
 function renderDownloadsList() {
@@ -277,6 +283,7 @@ function updateDownloadRow(entry) {
     return;
   }
   const pct = entry.total ? Math.round((entry.received / entry.total) * 100) : 0;
+  row.querySelector(".progress-track").classList.toggle("indeterminate", isIndeterminate(entry));
   row.querySelector(".progress-fill").style.width = `${pct}%`;
   row.querySelector(".progress-label").textContent = entry.statusText;
 }
@@ -303,7 +310,7 @@ async function runDownload(entry) {
   const tickInterval = setInterval(() => {
     if (entry.status !== "starting") return;
     const elapsed = Math.round((performance.now() - waitStart) / 1000);
-    entry.statusText = `Waiting for server... ${elapsed}s (fetching + processing the video)`;
+    entry.statusText = `Still working — fetching and processing the video... (${elapsed}s)`;
     updateDownloadRow(entry);
   }, 1000);
 

@@ -296,6 +296,20 @@ select {
   100% { background-position: 0 0; }
 }
 
+.progress-track.indeterminate {
+  position: relative;
+}
+
+.progress-track.indeterminate .progress-fill {
+  width: 30% !important;
+  animation: indeterminate 1.3s ease-in-out infinite;
+}
+
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(333%); }
+}
+
 .results-list {
   display: flex;
   flex-direction: column;
