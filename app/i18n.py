@@ -48,7 +48,7 @@ MESSAGES = {
     },
     "playlist_fallback": {
         "en": "Playlist",
-        "fr": "Playlist",
+        "fr": "Liste de lecture",
     },
 }
 

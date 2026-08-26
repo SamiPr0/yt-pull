@@ -56,7 +56,7 @@ const TRANSLATIONS = {
     langName: "Français",
     pageTitle: "yt-pull — Téléchargeur YouTube gratuit",
     metaDescription:
-      "Colle un lien, choisis une qualité, récupère un MP4. Téléchargeur YouTube gratuit pour vidéos, playlists ou lots de liens — rien n'est stocké sur le serveur.",
+      "Colle un lien, choisis une qualité, récupère un MP4. Téléchargeur YouTube gratuit pour vidéos, listes de lecture ou lots de liens — rien n'est stocké sur le serveur.",
     githubLinkText: "Code source sur GitHub",
     tagline: "Téléchargeur YouTube gratuit — colle un lien, choisis ta qualité, récupère ton MP4.",
     step1: "Colle le(s) lien(s)",
@@ -64,7 +64,7 @@ const TRANSLATIONS = {
     step3: "Télécharge",
     urlsLabel: "Lien(s) YouTube",
     urlsPlaceholder:
-      "Colle un lien de vidéo, de playlist, ou plusieurs liens (un par ligne)\nhttps://www.youtube.com/watch?v=...\nhttps://www.youtube.com/playlist?list=...",
+      "Colle un lien de vidéo, de liste de lecture, ou plusieurs liens (un par ligne)\nhttps://www.youtube.com/watch?v=...\nhttps://www.youtube.com/playlist?list=...",
     clear: "Effacer",
     analyze: "Analyser",
     analyzing: "Analyse...",
