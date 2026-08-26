@@ -14,18 +14,27 @@
 
 * { box-sizing: border-box; }
 
-html, body {
+html {
   margin: 0;
   padding: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: Roboto, "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   min-height: 100vh;
 }
 
 body {
+  margin: 0;
+  padding: 0;
+  color: var(--text);
+  font-family: Roboto, "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(800px circle at 10% 5%, rgba(255, 0, 0, 0.45), transparent 55%),
+    radial-gradient(650px circle at 90% 20%, rgba(255, 40, 40, 0.28), transparent 55%),
+    radial-gradient(950px circle at 50% 110%, rgba(255, 0, 0, 0.22), transparent 60%),
+    radial-gradient(550px circle at 98% 95%, rgba(255, 0, 0, 0.20), transparent 55%);
+  background-attachment: fixed;
 }
 
 .topbar {
