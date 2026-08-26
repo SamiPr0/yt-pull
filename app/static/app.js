@@ -114,7 +114,7 @@ function qualityOptions(item) {
     .join("");
 }
 
-function renderItem(item, index) {
+function renderItem(item, index, showCheckbox) {
   if (item.error) {
     return `
       <div class="video-card errored" data-index="${index}">
@@ -132,7 +132,7 @@ function renderItem(item, index) {
   return `
     <div class="video-card" data-index="${index}">
       <div class="video-card-row">
-        <input type="checkbox" class="video-checkbox" ${item.selected ? "checked" : ""} aria-label="Select this video" />
+        ${showCheckbox ? `<input type="checkbox" class="video-checkbox" ${item.selected ? "checked" : ""} aria-label="Select this video" />` : ""}
         <img class="video-thumb" src="${item.thumbnail || ""}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
         <div class="video-info">
           <p class="video-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</p>
@@ -176,8 +176,9 @@ function syncDownloadAllLabel() {
 }
 
 function render() {
-  resultsList.innerHTML = currentItems.map(renderItem).join("");
   const downloadable = selectableItems().length;
+  const showCheckbox = downloadable >= 2;
+  resultsList.innerHTML = currentItems.map((item, index) => renderItem(item, index, showCheckbox)).join("");
   resultsTitle.textContent = `Results (${currentItems.length})`;
   downloadAllBtn.classList.toggle("hidden", downloadable < 2);
   selectAllLabel.classList.toggle("hidden", downloadable < 2);
