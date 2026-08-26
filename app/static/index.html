@@ -3,9 +3,23 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>yt-pull</title>
+<title>yt-pull — Free YouTube Downloader</title>
+<meta name="description" content="Paste a link, pick a quality, get an MP4. Free YouTube downloader for single videos, playlists, or a batch of links — nothing stored on the server." />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="stylesheet" href="/style.css" />
+
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yt-pull.onrender.com/" />
+<meta property="og:title" content="yt-pull — Free YouTube Downloader" />
+<meta property="og:description" content="Paste a link, pick a quality, get an MP4. Single videos, playlists, or a batch of links." />
+<meta property="og:image" content="https://yt-pull.onrender.com/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="yt-pull — Free YouTube Downloader" />
+<meta name="twitter:description" content="Paste a link, pick a quality, get an MP4. Single videos, playlists, or a batch of links." />
+<meta name="twitter:image" content="https://yt-pull.onrender.com/og-image.png" />
 </head>
 <body>
   <header class="topbar">
@@ -41,6 +55,7 @@
   </header>
 
   <main class="container">
+    <div id="searchView">
     <section class="input-card">
       <label for="urls" class="field-label">YouTube link(s)</label>
       <textarea
@@ -78,8 +93,18 @@
           <button id="downloadAllBtn" class="btn btn-secondary hidden">Download selected</button>
         </div>
       </div>
+      <p id="rateLimitHint" class="hint-msg hidden"></p>
       <div id="resultsList" class="results-list"></div>
     </section>
+    </div>
+
+    <div id="downloadsView" class="hidden">
+      <div class="downloads-header">
+        <button id="backBtn" class="btn btn-secondary">← Back</button>
+        <h2>Downloads</h2>
+      </div>
+      <div id="downloadsList" class="results-list"></div>
+    </div>
 
     <footer class="disclaimer">
       Personal tool built on <code>yt-dlp</code>. Respect copyright and YouTube's terms of

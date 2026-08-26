@@ -8,10 +8,16 @@ const resultsSection = document.getElementById("resultsSection");
 const resultsTitle = document.getElementById("resultsTitle");
 const resultsList = document.getElementById("resultsList");
 const downloadAllBtn = document.getElementById("downloadAllBtn");
+const rateLimitHint = document.getElementById("rateLimitHint");
 const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+const searchView = document.getElementById("searchView");
+const downloadsView = document.getElementById("downloadsView");
+const downloadsList = document.getElementById("downloadsList");
+const backBtn = document.getElementById("backBtn");
 
 let currentItems = [];
-const activeDownloads = new Map();
+let downloadIdCounter = 0;
+const downloads = new Map(); // id -> entry
 
 function setLoading(isLoading) {
   analyzeBtn.disabled = isLoading;
@@ -62,6 +68,43 @@ function isLikelyYoutubeUrl(str) {
   }
 }
 
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+// ---------- View navigation (search <-> downloads) ----------
+
+function renderView(view) {
+  const showDownloads = view === "downloads";
+  downloadsView.classList.toggle("hidden", !showDownloads);
+  searchView.classList.toggle("hidden", showDownloads);
+}
+
+function goToDownloads() {
+  renderView("downloads");
+  if (location.hash !== "#downloads") {
+    history.pushState({ view: "downloads" }, "", "#downloads");
+  }
+}
+
+function goToSearch() {
+  renderView("search");
+  if (location.hash === "#downloads") {
+    history.pushState({ view: "search" }, "", location.pathname + location.search);
+  }
+}
+
+backBtn.addEventListener("click", goToSearch);
+
+window.addEventListener("popstate", (e) => {
+  const view = e.state?.view || (location.hash === "#downloads" ? "downloads" : "search");
+  renderView(view);
+});
+
+// ---------- Search / results ----------
+
 function qualityOptions(item) {
   const qualities = item.qualities && item.qualities.length ? item.qualities : ["best"];
   const preferred = qualities.includes("1080p") ? "1080p" : qualities[0];
@@ -102,17 +145,7 @@ function renderItem(item, index) {
           <button class="dl-btn" data-action="download">Download</button>
         </div>
       </div>
-      <div class="progress-track hidden">
-        <div class="progress-fill"></div>
-      </div>
-      <p class="progress-label hidden"></p>
     </div>`;
-}
-
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str ?? "";
-  return div.innerHTML;
 }
 
 function selectableItems() {
@@ -130,6 +163,15 @@ function syncDownloadAllLabel() {
   const selectedCount = selectableItems().filter((i) => i.selected).length;
   downloadAllBtn.textContent = `Download selected (${selectedCount})`;
   downloadAllBtn.disabled = selectedCount === 0;
+
+  if (selectedCount > DOWNLOAD_RATE_LIMIT) {
+    rateLimitHint.textContent =
+      `${selectedCount} selected — downloads are limited to ${DOWNLOAD_RATE_LIMIT}/min, ` +
+      `so this batch will pace itself and take longer.`;
+    rateLimitHint.classList.remove("hidden");
+  } else {
+    rateLimitHint.classList.add("hidden");
+  }
 }
 
 function render() {
@@ -141,114 +183,16 @@ function render() {
   syncDownloadAllLabel();
 }
 
-function extractFilename(contentDisposition) {
-  if (!contentDisposition) return null;
-  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
-  if (utf8Match) return decodeURIComponent(utf8Match[1]);
-  const asciiMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
-  return asciiMatch ? asciiMatch[1] : null;
-}
-
-async function triggerDownload(item, quality, card, index) {
-  const btn = card.querySelector(".dl-btn");
-  const track = card.querySelector(".progress-track");
-  const fill = card.querySelector(".progress-fill");
-  const label = card.querySelector(".progress-label");
-
-  const controller = new AbortController();
-  activeDownloads.set(index, controller);
-
-  btn.disabled = false;
-  btn.textContent = "Cancel";
-  btn.dataset.action = "cancel";
-  track.classList.remove("hidden", "error");
-  label.classList.remove("hidden");
-  fill.style.width = "0%";
-  label.textContent = "Starting...";
-
-  const params = new URLSearchParams({ url: item.url, quality: quality || "best" });
-
-  try {
-    const res = await fetch(`/api/download?${params.toString()}`, { signal: controller.signal });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.detail || `Download failed (${res.status})`);
-    }
-
-    const total = Number(res.headers.get("Content-Length")) || 0;
-    const filename = extractFilename(res.headers.get("Content-Disposition")) || "video.mp4";
-
-    const reader = res.body.getReader();
-    const chunks = [];
-    let received = 0;
-    const startTime = performance.now();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      received += value.length;
-
-      const elapsed = (performance.now() - startTime) / 1000;
-      const eta = elapsed > 0.5 && total ? formatEta((total - received) / (received / elapsed)) : null;
-
-      if (total) {
-        const pct = Math.round((received / total) * 100);
-        fill.style.width = `${pct}%`;
-        label.textContent = `${pct}% (${formatBytes(received)} / ${formatBytes(total)})${eta ? ` — ${eta}` : ""}`;
-      } else {
-        label.textContent = formatBytes(received);
-      }
-    }
-
-    const blob = new Blob(chunks, { type: "video/mp4" });
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(blobUrl);
-
-    fill.style.width = "100%";
-    label.textContent = "Done ✓";
-    btn.textContent = "Started ✓";
-    btn.dataset.action = "done";
-    btn.disabled = true;
-    btn.classList.add("done");
-  } catch (err) {
-    if (err.name === "AbortError") {
-      label.textContent = "Cancelled";
-      fill.style.width = "0%";
-    } else {
-      label.textContent = err.message || "Download failed.";
-      track.classList.add("error");
-    }
-    btn.textContent = "Retry";
-    btn.dataset.action = "download";
-    btn.disabled = false;
-  } finally {
-    activeDownloads.delete(index);
-  }
-}
-
 resultsList.addEventListener("click", (e) => {
-  const cancelBtn = e.target.closest('[data-action="cancel"]');
-  if (cancelBtn) {
-    const card = cancelBtn.closest(".video-card");
-    const index = Number(card.dataset.index);
-    activeDownloads.get(index)?.abort();
-    return;
-  }
-
   const btn = e.target.closest('[data-action="download"]');
   if (!btn) return;
   const card = btn.closest(".video-card");
   const index = Number(card.dataset.index);
   const item = currentItems[index];
   const quality = card.querySelector(".quality-select")?.value;
-  triggerDownload(item, quality, card, index);
+  const entry = createDownloadEntry(item, quality);
+  goToDownloads();
+  runDownload(entry);
 });
 
 resultsList.addEventListener("change", (e) => {
@@ -266,22 +210,218 @@ selectAllCheckbox.addEventListener("change", () => {
   render();
 });
 
+// ---------- Downloads view ----------
+
+function extractFilename(contentDisposition) {
+  if (!contentDisposition) return null;
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match) return decodeURIComponent(utf8Match[1]);
+  const asciiMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return asciiMatch ? asciiMatch[1] : null;
+}
+
+function createDownloadEntry(item, quality) {
+  const entry = {
+    id: ++downloadIdCounter,
+    item,
+    quality,
+    status: "starting", // starting | waiting | downloading | done | error | cancelled
+    received: 0,
+    total: 0,
+    statusText: "Waiting for server...",
+    controller: null,
+  };
+  downloads.set(entry.id, entry);
+  renderDownloadsList();
+  return entry;
+}
+
+function renderDownloadRow(entry) {
+  const pct = entry.total ? Math.round((entry.received / entry.total) * 100) : 0;
+  let actionHtml;
+  if (entry.status === "starting" || entry.status === "downloading" || entry.status === "waiting") {
+    actionHtml = `<button class="dl-btn" data-action="cancel-dl" data-id="${entry.id}">Cancel</button>`;
+  } else if (entry.status === "error" || entry.status === "cancelled") {
+    actionHtml = `<button class="dl-btn" data-action="retry-dl" data-id="${entry.id}">Retry</button>`;
+  } else {
+    actionHtml = `<button class="dl-btn done" disabled>Done ✓</button>`;
+  }
+
+  return `
+    <div class="video-card" data-id="${entry.id}">
+      <div class="video-card-row">
+        <img class="video-thumb" src="${entry.item.thumbnail || ""}" alt="" onerror="this.style.visibility='hidden'" />
+        <div class="video-info">
+          <p class="video-title" title="${escapeHtml(entry.item.title)}">${escapeHtml(entry.item.title)}</p>
+        </div>
+        <div class="video-actions">${actionHtml}</div>
+      </div>
+      <div class="progress-track ${entry.status === "error" ? "error" : ""}">
+        <div class="progress-fill" style="width:${pct}%"></div>
+      </div>
+      <p class="progress-label">${escapeHtml(entry.statusText)}</p>
+    </div>`;
+}
+
+function renderDownloadsList() {
+  const entries = [...downloads.values()].reverse();
+  downloadsList.innerHTML =
+    entries.map(renderDownloadRow).join("") ||
+    `<p class="hint-msg">No downloads yet.</p>`;
+}
+
+function updateDownloadRow(entry) {
+  const row = downloadsList.querySelector(`.video-card[data-id="${entry.id}"]`);
+  if (!row) {
+    renderDownloadsList();
+    return;
+  }
+  const pct = entry.total ? Math.round((entry.received / entry.total) * 100) : 0;
+  row.querySelector(".progress-fill").style.width = `${pct}%`;
+  row.querySelector(".progress-label").textContent = entry.statusText;
+}
+
+downloadsList.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-id]");
+  if (!btn) return;
+  const entry = downloads.get(Number(btn.dataset.id));
+  if (!entry) return;
+  if (btn.dataset.action === "cancel-dl") {
+    entry.controller?.abort();
+  } else if (btn.dataset.action === "retry-dl") {
+    runDownload(entry);
+  }
+});
+
+async function runDownload(entry) {
+  entry.status = "starting";
+  entry.statusText = "Waiting for server...";
+  entry.controller = new AbortController();
+  renderDownloadsList();
+
+  const waitStart = performance.now();
+  const tickInterval = setInterval(() => {
+    if (entry.status !== "starting") return;
+    const elapsed = Math.round((performance.now() - waitStart) / 1000);
+    entry.statusText = `Waiting for server... ${elapsed}s (fetching + processing the video)`;
+    updateDownloadRow(entry);
+  }, 1000);
+
+  const params = new URLSearchParams({ url: entry.item.url, quality: entry.quality || "best" });
+
+  try {
+    const res = await fetch(`/api/download?${params.toString()}`, { signal: entry.controller.signal });
+    clearInterval(tickInterval);
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || `Download failed (${res.status})`);
+    }
+
+    entry.status = "downloading";
+    entry.total = Number(res.headers.get("Content-Length")) || 0;
+    const filename = extractFilename(res.headers.get("Content-Disposition")) || "video.mp4";
+
+    const reader = res.body.getReader();
+    const chunks = [];
+    entry.received = 0;
+    const startTime = performance.now();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      entry.received += value.length;
+
+      const elapsed = (performance.now() - startTime) / 1000;
+      const eta =
+        elapsed > 0.5 && entry.total
+          ? formatEta((entry.total - entry.received) / (entry.received / elapsed))
+          : null;
+
+      if (entry.total) {
+        const pct = Math.round((entry.received / entry.total) * 100);
+        entry.statusText = `${pct}% (${formatBytes(entry.received)} / ${formatBytes(entry.total)})${eta ? ` — ${eta}` : ""}`;
+      } else {
+        entry.statusText = formatBytes(entry.received);
+      }
+      updateDownloadRow(entry);
+    }
+
+    const blob = new Blob(chunks, { type: "video/mp4" });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+
+    entry.status = "done";
+    entry.statusText = "Done ✓";
+    renderDownloadsList();
+  } catch (err) {
+    clearInterval(tickInterval);
+    if (err.name === "AbortError") {
+      entry.status = "cancelled";
+      entry.statusText = "Cancelled";
+    } else {
+      entry.status = "error";
+      entry.statusText = err.message || "Download failed.";
+    }
+    renderDownloadsList();
+  }
+}
+
+const DOWNLOAD_RATE_LIMIT = 10;
+const DOWNLOAD_RATE_WINDOW_MS = 60000;
+
+// Mirrors the server's per-IP rate limit on /api/download so a big batch
+// paces itself instead of hitting 429s partway through.
+async function waitForDownloadSlot(startTimes, entry) {
+  const now = Date.now();
+  while (startTimes.length && startTimes[0] <= now - DOWNLOAD_RATE_WINDOW_MS) {
+    startTimes.shift();
+  }
+  if (startTimes.length >= DOWNLOAD_RATE_LIMIT) {
+    const waitMs = startTimes[0] + DOWNLOAD_RATE_WINDOW_MS - now + 250;
+    entry.status = "waiting";
+    entry.statusText = `Queued — waiting ${Math.ceil(waitMs / 1000)}s (rate limit)`;
+    renderDownloadsList();
+    await new Promise((r) => setTimeout(r, waitMs));
+    return waitForDownloadSlot(startTimes, entry);
+  }
+  startTimes.push(Date.now());
+}
+
 downloadAllBtn.addEventListener("click", async () => {
   const cards = [...resultsList.querySelectorAll(".video-card:not(.errored)")];
+  const queued = [];
   for (const card of cards) {
     const index = Number(card.dataset.index);
     const item = currentItems[index];
     if (!item.selected) continue;
     const quality = card.querySelector(".quality-select")?.value;
-    await triggerDownload(item, quality, card, index);
+    queued.push(createDownloadEntry(item, quality));
+  }
+  if (!queued.length) return;
+
+  goToDownloads();
+  const startTimes = [];
+  for (const entry of queued) {
+    await waitForDownloadSlot(startTimes, entry);
+    await runDownload(entry);
   }
 });
 
 // If the visitor navigates away or closes the tab mid-download, abort every
 // in-flight request instead of letting it keep streaming to a dead client.
 window.addEventListener("pagehide", () => {
-  activeDownloads.forEach((controller) => controller.abort());
+  downloads.forEach((entry) => entry.controller?.abort());
 });
+
+// ---------- Analyze / clear / validation ----------
 
 analyzeBtn.addEventListener("click", async () => {
   globalError.classList.add("hidden");
@@ -357,7 +497,6 @@ function validateUrls() {
 urlsEl.addEventListener("input", validateUrls);
 
 clearBtn.addEventListener("click", () => {
-  activeDownloads.forEach((controller) => controller.abort());
   urlsEl.value = "";
   currentItems = [];
   resultsList.innerHTML = "";
