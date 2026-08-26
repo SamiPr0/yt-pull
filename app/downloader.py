@@ -34,21 +34,22 @@ POT_PROVIDER_BINARY = "/usr/local/bin/bgutil-pot"
 def _base_ydl_opts() -> dict:
     """Options merged into every yt-dlp call.
 
-    Cloud/datacenter IPs (Render, AWS, etc.) get hit with YouTube's "Sign in
-    to confirm you're not a bot" wall far more often than home connections,
-    because the web client can't prove a request came from a real browser
-    without a proof-of-origin (PO) token. The bgutil-ytdlp-pot-provider
-    plugin (installed in the Dockerfile) generates real tokens locally, no
-    personal account or cookies required — see downloader's Docker layer.
-    The android client is kept as a second-choice fallback in case the
-    token provider is unavailable (e.g. running outside Docker locally).
+    Deliberately does NOT force a specific `player_client`: yt-dlp's own
+    default client negotiation reliably finds the full quality ladder
+    (1080p+) on its own, and an earlier attempt to hardcode a short client
+    list here (to work around Render's datacenter-IP bot-check) turned out
+    to both fail at that job AND silently cap everyone else — including
+    the desktop build, on a perfectly normal home IP — at 360p. Forcing a
+    specific client is a strictly worse default; don't reintroduce it.
+
+    If the PO token provider binary happens to be present (bundled only in
+    the Docker image, for Render — see the Dockerfile), hand yt-dlp its
+    path so its own client logic can use it where it decides a token is
+    needed; this doesn't force any particular client.
     """
-    opts: dict = {
-        "extractor_args": {
-            "youtube": {"player_client": ["web", "android"]},
-            "youtubepot-bgutilcli": {"cli_path": [POT_PROVIDER_BINARY]},
-        }
-    }
+    opts: dict = {}
+    if os.path.isfile(POT_PROVIDER_BINARY):
+        opts["extractor_args"] = {"youtubepot-bgutilcli": {"cli_path": [POT_PROVIDER_BINARY]}}
     cookies_file = os.environ.get("YTDLP_COOKIES_FILE")
     if cookies_file and Path(cookies_file).is_file():
         opts["cookiefile"] = cookies_file
