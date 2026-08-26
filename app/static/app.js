@@ -11,6 +11,8 @@ const downloadAllBtn = document.getElementById("downloadAllBtn");
 const rateLimitHint = document.getElementById("rateLimitHint");
 const selectAllCheckbox = document.getElementById("selectAllCheckbox");
 const selectAllLabel = document.getElementById("selectAllLabel");
+const bulkQualityLabel = document.getElementById("bulkQualityLabel");
+const bulkQualitySelect = document.getElementById("bulkQualitySelect");
 const searchView = document.getElementById("searchView");
 const downloadsView = document.getElementById("downloadsView");
 const downloadsList = document.getElementById("downloadsList");
@@ -182,9 +184,21 @@ function render() {
   resultsTitle.textContent = `Results (${currentItems.length})`;
   downloadAllBtn.classList.toggle("hidden", downloadable < 2);
   selectAllLabel.classList.toggle("hidden", downloadable < 2);
+  bulkQualityLabel.classList.toggle("hidden", downloadable < 2);
+  bulkQualitySelect.value = "";
   syncSelectAllCheckbox();
   syncDownloadAllLabel();
 }
+
+bulkQualitySelect.addEventListener("change", () => {
+  const quality = bulkQualitySelect.value;
+  if (!quality) return;
+  resultsList.querySelectorAll(".video-card:not(.errored) .quality-select").forEach((select) => {
+    if ([...select.options].some((o) => o.value === quality)) {
+      select.value = quality;
+    }
+  });
+});
 
 resultsList.addEventListener("click", (e) => {
   const btn = e.target.closest('[data-action="download"]');

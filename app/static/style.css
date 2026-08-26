@@ -296,7 +296,8 @@ select {
   gap: 16px;
 }
 
-.select-all {
+.select-all,
+.bulk-quality {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -304,6 +305,11 @@ select {
   color: var(--text-dim);
   cursor: pointer;
   user-select: none;
+}
+
+.bulk-quality select {
+  padding: 5px 8px;
+  font-size: 12px;
 }
 
 .select-all input {
