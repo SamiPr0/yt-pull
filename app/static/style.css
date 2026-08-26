@@ -256,6 +256,34 @@ select {
   margin-bottom: 20px;
 }
 
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 10px 8px 6px;
+  border-radius: 999px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.back-btn svg {
+  transition: transform 0.15s ease;
+}
+
+.back-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.back-btn:hover svg {
+  transform: translateX(-3px);
+}
+
 .downloads-header h2 {
   margin: 0;
   font-size: 18px;
