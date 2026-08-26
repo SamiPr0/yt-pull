@@ -284,14 +284,14 @@ select {
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-primary {
-  background: linear-gradient(135deg, #ff2b2b, var(--accent-hover));
+  background: linear-gradient(135deg, #b30000, #6b0000);
   color: white;
-  box-shadow: 0 6px 20px rgba(255, 0, 0, 0.35);
+  box-shadow: 0 6px 20px rgba(255, 0, 0, 0.25);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-  box-shadow: 0 8px 24px rgba(255, 0, 0, 0.45);
+  background: linear-gradient(135deg, #c40000, #7a0000);
+  box-shadow: 0 8px 24px rgba(255, 0, 0, 0.35);
 }
 
 .btn-secondary {
