@@ -21,3 +21,8 @@ Thumbs.db
 
 # Claude Code local tool config (dev launch config, per-machine)
 .claude/
+
+# PyInstaller build output for the desktop build (large binaries, rebuild locally)
+build/
+dist/
+*.spec
