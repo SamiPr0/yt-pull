@@ -12,6 +12,7 @@ Free YouTube downloader — paste a link, pick a quality, get an MP4. Works with
 - Live progress bar with ETA, cancel button, auto-cancel on page leave
 - Nothing stored server-side — files stream through a temp folder deleted right after
 - Per-IP rate limiting, no external dependency
+- English/French UI, including API error messages — add a language by editing `app/static/i18n.js` and `app/i18n.py`
 
 ## Run it
 

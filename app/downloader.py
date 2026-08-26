@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 
 from yt_dlp import YoutubeDL
 
+from app.i18n import t
+
 ALLOWED_HOSTS = {
     "youtube.com",
     "www.youtube.com",
@@ -29,13 +31,13 @@ class InvalidUrlError(ValueError):
     pass
 
 
-def assert_youtube_url(url: str) -> None:
+def assert_youtube_url(url: str, lang: str | None = None) -> None:
     try:
         host = urlparse(url).hostname or ""
     except ValueError as exc:
-        raise InvalidUrlError(f"Invalid URL: {url}") from exc
+        raise InvalidUrlError(t("invalid_url", lang, url=url)) from exc
     if host.lower() not in ALLOWED_HOSTS:
-        raise InvalidUrlError(f"Only YouTube links are accepted: {url}")
+        raise InvalidUrlError(t("youtube_only", lang, url=url))
 
 
 def _thumbnail_of(entry: dict) -> str | None:
@@ -45,7 +47,7 @@ def _thumbnail_of(entry: dict) -> str | None:
     return thumbs[-1]["url"] if thumbs else None
 
 
-def resolve(urls: list[str]) -> list[dict]:
+def resolve(urls: list[str], lang: str | None = None) -> list[dict]:
     """Expand a mix of single-video / playlist / batch links into a flat
     list of individually-downloadable video items. Never touches disk."""
     items: list[dict] = []
@@ -56,7 +58,7 @@ def resolve(urls: list[str]) -> list[dict]:
             continue
 
         try:
-            assert_youtube_url(url)
+            assert_youtube_url(url, lang)
         except InvalidUrlError as exc:
             items.append({"url": url, "error": str(exc)})
             continue
@@ -67,15 +69,15 @@ def resolve(urls: list[str]) -> list[dict]:
             ) as ydl:
                 info = ydl.extract_info(url, download=False)
         except Exception as exc:  # noqa: BLE001 - surface any extraction failure to the UI
-            items.append({"url": url, "error": f"Could not read this link: {exc}"})
+            items.append({"url": url, "error": t("resolve_failed", lang, error=exc)})
             continue
 
         if info is None:
-            items.append({"url": url, "error": "No information found for this link."})
+            items.append({"url": url, "error": t("no_info", lang)})
             continue
 
         if info.get("_type") == "playlist" or info.get("entries"):
-            playlist_title = info.get("title") or "Playlist"
+            playlist_title = info.get("title") or t("playlist_fallback", lang)
             for entry in info.get("entries") or []:
                 if not entry:
                     continue
@@ -88,7 +90,7 @@ def resolve(urls: list[str]) -> list[dict]:
                 items.append(
                     {
                         "url": video_url,
-                        "title": entry.get("title") or "Sans titre",
+                        "title": entry.get("title") or t("untitled", lang),
                         "thumbnail": _thumbnail_of(entry),
                         "duration": entry.get("duration"),
                         "uploader": entry.get("uploader") or entry.get("channel"),
@@ -118,7 +120,7 @@ def resolve(urls: list[str]) -> list[dict]:
             items.append(
                 {
                     "url": full.get("webpage_url") or url,
-                    "title": full.get("title") or "Sans titre",
+                    "title": full.get("title") or t("untitled", lang),
                     "thumbnail": _thumbnail_of(full),
                     "duration": full.get("duration"),
                     "uploader": full.get("uploader") or full.get("channel"),
@@ -143,13 +145,13 @@ def _format_selector(quality: str | None) -> str:
     )
 
 
-def download_to_temp(url: str, quality: str | None) -> tuple[str, str, str]:
+def download_to_temp(url: str, quality: str | None, lang: str | None = None) -> tuple[str, str, str]:
     """Download exactly one video into a fresh temp directory.
 
     Returns (filepath, filename, tmpdir). The caller MUST remove `tmpdir`
     once the response has been sent (see main.py's BackgroundTask).
     """
-    assert_youtube_url(url)
+    assert_youtube_url(url, lang)
 
     tmpdir = tempfile.mkdtemp(prefix="ytpull_")
     ydl_opts = {
@@ -171,7 +173,7 @@ def download_to_temp(url: str, quality: str | None) -> tuple[str, str, str]:
         if not produced:
             produced = [p for p in Path(tmpdir).iterdir() if p.is_file()]
         if not produced:
-            raise RuntimeError("The download did not produce any file.")
+            raise RuntimeError(t("no_file_produced", lang))
 
         filepath = produced[0]
         return str(filepath), filepath.name, tmpdir

@@ -17,14 +17,48 @@ const searchView = document.getElementById("searchView");
 const downloadsView = document.getElementById("downloadsView");
 const downloadsList = document.getElementById("downloadsList");
 const backBtn = document.getElementById("backBtn");
+const langSelect = document.getElementById("langSelect");
 
 let currentItems = [];
 let downloadIdCounter = 0;
 const downloads = new Map(); // id -> entry
 
+// ---------- i18n wiring ----------
+
+function applyStaticTranslations() {
+  document.documentElement.lang = getLang();
+  document.title = t("pageTitle");
+  document.querySelector('meta[name="description"]')?.setAttribute("content", t("metaDescription"));
+
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+}
+
+function populateLangSelect() {
+  langSelect.innerHTML = SUPPORTED_LANGS.map(
+    (code) => `<option value="${code}" ${code === getLang() ? "selected" : ""}>${TRANSLATIONS[code].langName}</option>`
+  ).join("");
+}
+
+langSelect.addEventListener("change", () => {
+  setLang(langSelect.value);
+  applyStaticTranslations();
+  render();
+  renderDownloadsList();
+});
+
+populateLangSelect();
+applyStaticTranslations();
+
+// ---------- Helpers ----------
+
 function setLoading(isLoading) {
   analyzeBtn.disabled = isLoading;
-  analyzeBtn.querySelector(".btn-label").textContent = isLoading ? "Analyzing..." : "Analyze";
+  analyzeBtn.querySelector(".btn-label").textContent = isLoading ? t("analyzing") : t("analyze");
   analyzeBtn.querySelector(".spinner").classList.toggle("hidden", !isLoading);
   skeletonSection.classList.toggle("hidden", !isLoading);
 }
@@ -47,11 +81,11 @@ function formatBytes(bytes) {
 
 function formatEta(seconds) {
   if (!isFinite(seconds) || seconds < 0) return null;
-  if (seconds < 1) return "almost done";
-  if (seconds < 60) return `${Math.round(seconds)}s left`;
+  if (seconds < 1) return t("almostDone");
+  if (seconds < 60) return t("secLeft", Math.round(seconds));
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
-  return `${m}m ${s}s left`;
+  return t("minSecLeft", m, s);
 }
 
 const YOUTUBE_HOSTS = new Set([
@@ -112,7 +146,7 @@ function qualityOptions(item) {
   const qualities = item.qualities && item.qualities.length ? item.qualities : ["best"];
   const preferred = qualities.includes("1080p") ? "1080p" : qualities[0];
   return qualities
-    .map((q) => `<option value="${q}" ${q === preferred ? "selected" : ""}>${q}</option>`)
+    .map((q) => `<option value="${q}" ${q === preferred ? "selected" : ""}>${q === "best" ? t("bestAvailable") : q}</option>`)
     .join("");
 }
 
@@ -134,7 +168,7 @@ function renderItem(item, index, showCheckbox) {
   return `
     <div class="video-card" data-index="${index}">
       <div class="video-card-row">
-        ${showCheckbox ? `<input type="checkbox" class="video-checkbox" ${item.selected ? "checked" : ""} aria-label="Select this video" />` : ""}
+        ${showCheckbox ? `<input type="checkbox" class="video-checkbox" ${item.selected ? "checked" : ""} aria-label="${t("selectThisVideo")}" />` : ""}
         <img class="video-thumb" src="${item.thumbnail || ""}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
         <div class="video-info">
           <p class="video-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</p>
@@ -145,7 +179,7 @@ function renderItem(item, index, showCheckbox) {
         </div>
         <div class="video-actions">
           <select class="quality-select">${qualityOptions(item)}</select>
-          <button class="dl-btn" data-action="download">Download</button>
+          <button class="dl-btn" data-action="download">${t("download")}</button>
         </div>
       </div>
     </div>`;
@@ -164,13 +198,11 @@ function syncSelectAllCheckbox() {
 
 function syncDownloadAllLabel() {
   const selectedCount = selectableItems().filter((i) => i.selected).length;
-  downloadAllBtn.textContent = `Download selected (${selectedCount})`;
+  downloadAllBtn.textContent = t("downloadSelected", selectedCount);
   downloadAllBtn.disabled = selectedCount === 0;
 
   if (selectedCount > DOWNLOAD_RATE_LIMIT) {
-    rateLimitHint.textContent =
-      `${selectedCount} selected — downloads are limited to ${DOWNLOAD_RATE_LIMIT}/min, ` +
-      `so this batch will pace itself and take longer.`;
+    rateLimitHint.textContent = t("rateLimitWarning", selectedCount, DOWNLOAD_RATE_LIMIT);
     rateLimitHint.classList.remove("hidden");
   } else {
     rateLimitHint.classList.add("hidden");
@@ -181,7 +213,7 @@ function render() {
   const downloadable = selectableItems().length;
   const showCheckbox = downloadable >= 2;
   resultsList.innerHTML = currentItems.map((item, index) => renderItem(item, index, showCheckbox)).join("");
-  resultsTitle.textContent = `Results (${currentItems.length})`;
+  resultsTitle.textContent = t("results", currentItems.length);
   downloadAllBtn.classList.toggle("hidden", downloadable < 2);
   selectAllLabel.classList.toggle("hidden", downloadable < 2);
   bulkQualityLabel.classList.toggle("hidden", downloadable < 2);
@@ -245,7 +277,7 @@ function createDownloadEntry(item, quality) {
     status: "starting", // starting | waiting | downloading | done | error | cancelled
     received: 0,
     total: 0,
-    statusText: "Waiting for server...",
+    statusText: t("waitingForServer"),
     controller: null,
   };
   downloads.set(entry.id, entry);
@@ -257,11 +289,11 @@ function renderDownloadRow(entry) {
   const pct = entry.total ? Math.round((entry.received / entry.total) * 100) : 0;
   let actionHtml;
   if (entry.status === "starting" || entry.status === "downloading" || entry.status === "waiting") {
-    actionHtml = `<button class="dl-btn" data-action="cancel-dl" data-id="${entry.id}">Cancel</button>`;
+    actionHtml = `<button class="dl-btn" data-action="cancel-dl" data-id="${entry.id}">${t("cancel")}</button>`;
   } else if (entry.status === "error" || entry.status === "cancelled") {
-    actionHtml = `<button class="dl-btn" data-action="retry-dl" data-id="${entry.id}">Retry</button>`;
+    actionHtml = `<button class="dl-btn" data-action="retry-dl" data-id="${entry.id}">${t("retry")}</button>`;
   } else {
-    actionHtml = `<button class="dl-btn done" disabled>Done ✓</button>`;
+    actionHtml = `<button class="dl-btn done" disabled>${t("done")}</button>`;
   }
 
   return `
@@ -288,7 +320,7 @@ function renderDownloadsList() {
   const entries = [...downloads.values()].reverse();
   downloadsList.innerHTML =
     entries.map(renderDownloadRow).join("") ||
-    `<p class="hint-msg">No downloads yet.</p>`;
+    `<p class="hint-msg">${t("noDownloadsYet")}</p>`;
 }
 
 function updateDownloadRow(entry) {
@@ -317,7 +349,7 @@ downloadsList.addEventListener("click", (e) => {
 
 async function runDownload(entry) {
   entry.status = "starting";
-  entry.statusText = "Waiting for server...";
+  entry.statusText = t("waitingForServer");
   entry.controller = new AbortController();
   renderDownloadsList();
 
@@ -325,11 +357,11 @@ async function runDownload(entry) {
   const tickInterval = setInterval(() => {
     if (entry.status !== "starting") return;
     const elapsed = Math.round((performance.now() - waitStart) / 1000);
-    entry.statusText = `Still working — fetching and processing the video... (${elapsed}s)`;
+    entry.statusText = t("stillWorking", elapsed);
     updateDownloadRow(entry);
   }, 1000);
 
-  const params = new URLSearchParams({ url: entry.item.url, quality: entry.quality || "best" });
+  const params = new URLSearchParams({ url: entry.item.url, quality: entry.quality || "best", lang: getLang() });
 
   try {
     const res = await fetch(`/api/download?${params.toString()}`, { signal: entry.controller.signal });
@@ -337,7 +369,7 @@ async function runDownload(entry) {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(data.detail || `Download failed (${res.status})`);
+      throw new Error(data.detail || `${t("somethingWrong")} (${res.status})`);
     }
 
     entry.status = "downloading";
@@ -381,16 +413,16 @@ async function runDownload(entry) {
     URL.revokeObjectURL(blobUrl);
 
     entry.status = "done";
-    entry.statusText = "Done ✓";
+    entry.statusText = t("done");
     renderDownloadsList();
   } catch (err) {
     clearInterval(tickInterval);
     if (err.name === "AbortError") {
       entry.status = "cancelled";
-      entry.statusText = "Cancelled";
+      entry.statusText = t("cancelled");
     } else {
       entry.status = "error";
-      entry.statusText = err.message || "Download failed.";
+      entry.statusText = err.message || t("somethingWrong");
     }
     renderDownloadsList();
   }
@@ -409,7 +441,7 @@ async function waitForDownloadSlot(startTimes, entry) {
   if (startTimes.length >= DOWNLOAD_RATE_LIMIT) {
     const waitMs = startTimes[0] + DOWNLOAD_RATE_WINDOW_MS - now + 250;
     entry.status = "waiting";
-    entry.statusText = `Queued — waiting ${Math.ceil(waitMs / 1000)}s (rate limit)`;
+    entry.statusText = t("queuedWaiting", Math.ceil(waitMs / 1000));
     renderDownloadsList();
     await new Promise((r) => setTimeout(r, waitMs));
     return waitForDownloadSlot(startTimes, entry);
@@ -453,7 +485,7 @@ analyzeBtn.addEventListener("click", async () => {
     .filter(Boolean);
 
   if (!urls.length) {
-    globalError.textContent = "Paste at least one YouTube link.";
+    globalError.textContent = t("pasteAtLeastOne");
     globalError.classList.remove("hidden");
     return;
   }
@@ -465,17 +497,17 @@ analyzeBtn.addEventListener("click", async () => {
     const res = await fetch("/api/resolve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ urls }),
+      body: JSON.stringify({ urls, lang: getLang() }),
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || "Unknown error.");
+      throw new Error(data.detail || t("unknownError"));
     }
     currentItems = (data.items || []).map((item) => ({ ...item, selected: true }));
     render();
     resultsSection.classList.remove("hidden");
   } catch (err) {
-    globalError.textContent = err.message || "Something went wrong.";
+    globalError.textContent = err.message || t("somethingWrong");
     globalError.classList.remove("hidden");
   } finally {
     setLoading(false);
@@ -503,11 +535,11 @@ function validateUrls() {
   const invalid = lines.filter((u) => !isLikelyYoutubeUrl(u));
 
   if (invalid.length === lines.length) {
-    validationHint.textContent = "None of these look like YouTube links — check them before analyzing.";
+    validationHint.textContent = t("noneLookValid");
     validationHint.classList.remove("hidden");
     analyzeBtn.disabled = true;
   } else if (invalid.length > 0) {
-    validationHint.textContent = `${invalid.length} of ${lines.length} link(s) don't look like YouTube links and will likely fail.`;
+    validationHint.textContent = t("someInvalid", invalid.length, lines.length);
     validationHint.classList.remove("hidden");
     analyzeBtn.disabled = false;
   } else {

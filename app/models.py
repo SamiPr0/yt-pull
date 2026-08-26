@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class ResolveRequest(BaseModel):
     urls: list[str]
+    lang: str | None = None
 
 
 class DownloadRequest(BaseModel):
