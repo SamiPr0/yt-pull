@@ -47,15 +47,10 @@ html, body {
 }
 
 .brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--accent);
-  color: white;
-  font-size: 13px;
+  flex-shrink: 0;
 }
 
 .github-link {
@@ -82,6 +77,37 @@ html, body {
   margin: 12px auto 0;
   color: var(--text-dim);
   font-size: 14px;
+}
+
+.how-it-works {
+  max-width: 780px;
+  margin: 18px auto 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.how-it-works li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .container {
@@ -128,21 +154,10 @@ textarea:focus {
 .controls-row {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
   margin-top: 18px;
   flex-wrap: wrap;
-}
-
-.quality-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.quality-picker label {
-  font-size: 12px;
-  color: var(--text-dim);
 }
 
 select {
@@ -201,6 +216,12 @@ select {
   font-size: 13px;
 }
 
+.hint-msg {
+  margin-top: 10px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
 .results-section {
   margin-top: 32px;
 }
@@ -219,6 +240,40 @@ select {
   margin: 0;
 }
 
+.results-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.select-all input {
+  accent-color: var(--accent);
+}
+
+.skeleton-card {
+  height: 92px;
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
 .results-list {
   display: flex;
   flex-direction: column;
@@ -227,12 +282,49 @@ select {
 
 .video-card {
   display: flex;
-  gap: 14px;
+  flex-direction: column;
+  gap: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px;
+}
+
+.video-card-row {
+  display: flex;
+  gap: 14px;
   align-items: center;
+}
+
+.progress-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.progress-track.error .progress-fill {
+  background: var(--err);
+}
+
+.progress-label {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.video-checkbox {
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
 }
 
 .video-thumb {
@@ -299,6 +391,7 @@ select {
 
 .dl-btn:hover { border-color: var(--accent); color: var(--accent); }
 .dl-btn.done { color: var(--ok); border-color: var(--ok); }
+.dl-btn[data-action="cancel"] { color: var(--err); border-color: var(--err); }
 
 .video-card.errored {
   border-color: rgba(248, 113, 113, 0.4);
@@ -328,7 +421,7 @@ select {
 @media (max-width: 560px) {
   .topbar-inner { flex-wrap: wrap; }
   .github-link span { display: none; }
-  .video-card { flex-wrap: wrap; }
+  .video-card-row { flex-wrap: wrap; }
   .video-thumb { width: 100%; height: 160px; }
   .video-actions { width: 100%; justify-content: space-between; }
 }

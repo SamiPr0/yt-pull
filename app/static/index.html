@@ -4,13 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>yt-pull</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <span class="brand-mark">▶</span>
+        <img class="brand-mark" src="/favicon.svg" alt="" width="32" height="32" />
         <span class="brand-name">yt-pull</span>
       </div>
       <a
@@ -31,7 +32,12 @@
         <span>Source on GitHub</span>
       </a>
     </div>
-    <p class="tagline">Single video, playlist, or a batch of links — nothing is stored on the server.</p>
+    <p class="tagline">Free YouTube downloader — paste a link, pick your quality, get your MP4.</p>
+    <ol class="how-it-works">
+      <li><span class="step-num">1</span>Paste link(s)</li>
+      <li><span class="step-num">2</span>Pick a quality</li>
+      <li><span class="step-num">3</span>Download</li>
+    </ol>
   </header>
 
   <main class="container">
@@ -44,31 +50,33 @@
       ></textarea>
 
       <div class="controls-row">
-        <div class="quality-picker">
-          <label for="defaultQuality">Default quality</label>
-          <select id="defaultQuality">
-            <option value="best">Best available</option>
-            <option value="2160p">2160p (4K)</option>
-            <option value="1440p">1440p (2K)</option>
-            <option value="1080p" selected>1080p</option>
-            <option value="720p">720p</option>
-            <option value="480p">480p</option>
-            <option value="360p">360p</option>
-          </select>
-        </div>
+        <button id="clearBtn" class="btn btn-secondary">Clear</button>
         <button id="analyzeBtn" class="btn btn-primary">
           <span class="btn-label">Analyze</span>
           <span class="spinner hidden"></span>
         </button>
       </div>
 
+      <p id="validationHint" class="hint-msg hidden"></p>
       <p id="globalError" class="error-msg hidden"></p>
+    </section>
+
+    <section id="skeletonSection" class="results-section hidden" aria-hidden="true">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
     </section>
 
     <section id="resultsSection" class="results-section hidden">
       <div class="results-header">
         <h2 id="resultsTitle">Results</h2>
-        <button id="downloadAllBtn" class="btn btn-secondary hidden">Download all</button>
+        <div class="results-actions">
+          <label class="select-all">
+            <input type="checkbox" id="selectAllCheckbox" checked />
+            Select all
+          </label>
+          <button id="downloadAllBtn" class="btn btn-secondary hidden">Download selected</button>
+        </div>
       </div>
       <div id="resultsList" class="results-list"></div>
     </section>
