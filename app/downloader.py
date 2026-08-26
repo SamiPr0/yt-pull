@@ -225,3 +225,14 @@ def download_to_temp(url: str, quality: str | None, lang: str | None = None) -> 
 
 def cleanup(tmpdir: str) -> None:
     shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def cleanup_orphaned_temp_dirs() -> None:
+    """Sweep leftover ytpull_* temp dirs from a previous run that never got
+    to clean up after itself — e.g. the process was killed or crashed mid
+    download. Safe to call on every startup: a dir with this prefix can
+    only ever be an in-progress or abandoned download, never something a
+    live request still needs, since a fresh process has no in-flight ones
+    yet."""
+    for entry in Path(tempfile.gettempdir()).glob("ytpull_*"):
+        shutil.rmtree(entry, ignore_errors=True)

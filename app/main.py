@@ -15,6 +15,11 @@ STATIC_DIR = BASE_DIR / "static"
 app = FastAPI(title="yt-pull", docs_url="/api/docs")
 
 
+@app.on_event("startup")
+def _startup() -> None:
+    downloader.cleanup_orphaned_temp_dirs()
+
+
 @app.post("/api/resolve")
 def resolve(payload: ResolveRequest, request: Request):
     """Expand one or more links (video / playlist / mixed batch) into a
