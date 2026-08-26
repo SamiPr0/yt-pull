@@ -44,9 +44,9 @@ def main() -> None:
     port = 8000
     url = f"http://127.0.0.1:{port}"
 
-    print("yt-pull demarre...")
-    print(f"Si le navigateur ne s'ouvre pas tout seul, va sur : {url}")
-    print("Pour arreter le programme, ferme simplement cette fenetre.")
+    print("yt-pull is starting...")
+    print(f"If your browser doesn't open automatically, go to: {url}")
+    print("To stop the program, just close this window.")
 
     threading.Thread(target=_open_browser_when_ready, args=(url,), daemon=True).start()
 
