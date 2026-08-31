@@ -34,36 +34,6 @@ from urllib.parse import quote
 import webview
 
 
-_CTXMENU_PATCHED = False
-
-
-def _enable_webview_context_menu() -> None:
-    """pywebview gates the WebView2 right-click menu behind debug mode
-    (edgechromium.py: AreDefaultContextMenusEnabled = _state['debug']). Users
-    need it to paste a link, so turn just that back on — without enabling
-    devtools / F5 / F12 the way debug=True would. Best-effort: a pywebview
-    change that breaks this just means no right-click menu, not a crash."""
-    global _CTXMENU_PATCHED
-    try:
-        from webview.platforms import edgechromium as _ec
-
-        _orig_ready = _ec.EdgeChrome.on_webview_ready
-
-        def _ready(self, sender, args):
-            _orig_ready(self, sender, args)
-            try:
-                sender.CoreWebView2.Settings.AreDefaultContextMenusEnabled = True
-            except Exception:
-                pass
-
-        _ec.EdgeChrome.on_webview_ready = _ready
-        _CTXMENU_PATCHED = True
-    except Exception:
-        pass
-
-
-_enable_webview_context_menu()
-
 PAGES_UI_BASE = os.environ.get("YTPULL_UI_BASE") or "https://samipr0.github.io/yt-pull/app/"
 
 UI_FILES = [
@@ -201,6 +171,37 @@ class _Cancelled(Exception):
     pass
 
 
+def _clipboard_text() -> str:
+    """Read the Windows clipboard as text. Done here rather than in JS
+    because WebView2 gates navigator.clipboard.readText() behind a
+    permission prompt this app doesn't wire up."""
+    CF_UNICODETEXT = 13
+    u, k = ctypes.windll.user32, ctypes.windll.kernel32
+    u.GetClipboardData.restype = ctypes.c_void_p
+    k.GlobalLock.restype = ctypes.c_void_p
+    k.GlobalLock.argtypes = [ctypes.c_void_p]
+    k.GlobalUnlock.argtypes = [ctypes.c_void_p]
+    if not u.OpenClipboard(0):
+        return ""
+    try:
+        if not u.IsClipboardFormatAvailable(CF_UNICODETEXT):
+            return ""
+        handle = u.GetClipboardData(CF_UNICODETEXT)
+        if not handle:
+            return ""
+        ptr = k.GlobalLock(handle)
+        if not ptr:
+            return ""
+        try:
+            return ctypes.wstring_at(ptr)
+        finally:
+            k.GlobalUnlock(handle)
+    except Exception:
+        return ""
+    finally:
+        u.CloseClipboard()
+
+
 class _Api:
     """Exposed to the page as ``window.pywebview.api``. WebView2 silently
     drops blob / ``<a download>`` saves, so the desktop UI hands the download
@@ -216,6 +217,9 @@ class _Api:
 
     def cancel(self) -> None:
         self._cancel = True
+
+    def clipboard(self) -> str:
+        return _clipboard_text()
 
     def pick_folder(self):
         picked = self.window.create_file_dialog(webview.FOLDER_DIALOG)
@@ -313,7 +317,7 @@ def main() -> None:
         os._exit(0)
 
     _redirect_output_to_logfile()
-    print(f"yt-pull starting... (right-click menu patch: {_CTXMENU_PATCHED})")
+    print("yt-pull starting...")
     _prepend_bundled_ffmpeg_to_path()
     os.environ["YTPULL_UI_DIR"] = _sync_ui_from_pages()
 

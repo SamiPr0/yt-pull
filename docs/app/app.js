@@ -50,6 +50,45 @@ function suggestedFilename(title) {
   const base = (title || "video").replace(/[\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim().slice(0, 150);
   return (base || "video") + ".mp4";
 }
+
+// Desktop only: pywebview ships without a right-click menu, so give the link
+// box a one-item "Paste" menu. The clipboard is read in Python (WebView2
+// gates navigator.clipboard behind a permission prompt).
+(function setupPasteMenu() {
+  const menu = document.createElement("div");
+  menu.className = "paste-menu hidden";
+  document.body.appendChild(menu);
+
+  function hide() { menu.classList.add("hidden"); }
+
+  function pasteInto(el) {
+    return async () => {
+      hide();
+      const text = (await desktopApi?.clipboard?.()) || "";
+      if (!text) return;
+      const start = el.selectionStart ?? el.value.length;
+      const end = el.selectionEnd ?? el.value.length;
+      el.value = el.value.slice(0, start) + text + el.value.slice(end);
+      el.selectionStart = el.selectionEnd = start + text.length;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.focus();
+    };
+  }
+
+  urlsEl.addEventListener("contextmenu", (e) => {
+    if (!desktopApi) return; // browser: keep its native menu
+    e.preventDefault();
+    menu.textContent = t("paste");
+    menu.onclick = pasteInto(urlsEl);
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+    menu.classList.remove("hidden");
+  });
+  document.addEventListener("click", (e) => { if (e.target !== menu) hide(); });
+  document.addEventListener("scroll", hide, true);
+  window.addEventListener("blur", hide);
+})();
+
 let currentItems = [];
 let downloadIdCounter = 0;
 const downloads = new Map(); // id -> entry
