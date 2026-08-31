@@ -348,11 +348,10 @@ def main() -> None:
             "yt-pull", url, js_api=api, width=1180, height=860, min_size=(900, 640)
         )
         api.window = window
-        # Fixed WebView2 data folder, reused every launch. private_mode
-        # (the default) puts it in a fresh %TEMP%\tmp*/EBWebView that
-        # pywebview cleans up on a normal exit — but we hard-exit with
-        # os._exit(), which skips that, so those would pile up.
-        webview.start(private_mode=False, storage_path=os.path.join(_app_dir(), "webview"))
+        # storage_path pins the WebView2 user-data folder to one fixed
+        # location instead of a fresh %TEMP%\tmp*/EBWebView per launch that
+        # our os._exit() then leaves behind. private_mode stays default.
+        webview.start(storage_path=os.path.join(_app_dir(), "webview"))  # blocks until closed
     except Exception as exc:  # noqa: BLE001
         print(f"webview failed: {exc!r}")
         _error_box(WEBVIEW2_HELP)
