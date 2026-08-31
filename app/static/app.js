@@ -35,6 +35,21 @@ function apiHeaders(extra) {
   return h;
 }
 
+// In the desktop app the page runs inside pywebview, which exposes
+// window.pywebview.api. WebView2 silently drops blob/<a download> saves, so
+// there we hand the download to Python (native Save dialog + write to disk).
+// In a plain browser this stays null and the fetch+blob path is used.
+let desktopApi = null;
+if (window.pywebview && window.pywebview.api) {
+  desktopApi = window.pywebview.api;
+} else {
+  window.addEventListener("pywebviewready", () => { desktopApi = window.pywebview.api; }, { once: true });
+}
+
+function suggestedFilename(title) {
+  const base = (title || "video").replace(/[\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim().slice(0, 150);
+  return (base || "video") + ".mp4";
+}
 let currentItems = [];
 let downloadIdCounter = 0;
 const downloads = new Map(); // id -> entry
@@ -343,6 +358,8 @@ function renderDownloadRow(entry) {
     actionHtml = `<button class="dl-btn" data-action="cancel-dl" data-id="${entry.id}">${t("cancel")}</button>`;
   } else if (entry.status === "error" || entry.status === "cancelled") {
     actionHtml = `<button class="dl-btn" data-action="retry-dl" data-id="${entry.id}">${t("retry")}</button>`;
+  } else if (entry.savedPath) {
+    actionHtml = `<button class="dl-btn" data-action="reveal-dl" data-id="${entry.id}">${t("openFolder")}</button>`;
   } else {
     actionHtml = `<button class="dl-btn done" disabled>${t("done")}</button>`;
   }
@@ -395,10 +412,14 @@ downloadsList.addEventListener("click", (e) => {
     entry.controller?.abort();
   } else if (btn.dataset.action === "retry-dl") {
     runDownload(entry);
+  } else if (btn.dataset.action === "reveal-dl" && entry.savedPath) {
+    desktopApi?.reveal(entry.savedPath);
   }
 });
 
-async function runDownload(entry) {
+async function runDownload(entry, folder) {
+  if (desktopApi) return runDesktopDownload(entry, folder);
+
   entry.status = "starting";
   entry.statusText = t("waitingForServer");
   entry.controller = new AbortController();
@@ -482,6 +503,55 @@ async function runDownload(entry) {
   }
 }
 
+// Desktop: Python owns the download (native Save dialog, writes to disk,
+// pushes progress here). `folder` set = batch, save straight into it.
+async function runDesktopDownload(entry, folder) {
+  entry.status = "starting";
+  entry.statusText = t("waitingForServer");
+  entry.received = 0;
+  entry.total = 0;
+  entry.controller = { abort: () => { try { desktopApi.cancel(); } catch (e) {} } };
+  renderDownloadsList();
+
+  window.__ytpullProgress = (got, total) => {
+    if (entry.status !== "downloading" && entry.status !== "starting") return;
+    entry.status = "downloading";
+    entry.received = got;
+    entry.total = total;
+    entry.statusText = total
+      ? `${Math.round((got / total) * 100)}% (${formatBytes(got)} / ${formatBytes(total)})`
+      : formatBytes(got);
+    updateDownloadRow(entry);
+  };
+
+  let res;
+  try {
+    res = await desktopApi.download(
+      entry.item.url,
+      entry.quality || "best",
+      getLang(),
+      suggestedFilename(entry.item.title),
+      folder || null
+    );
+  } catch (err) {
+    res = { error: (err && err.message) || t("somethingWrong") };
+  }
+  window.__ytpullProgress = null;
+
+  if (res && res.cancelled) {
+    entry.status = "cancelled";
+    entry.statusText = t("cancelled");
+  } else if (res && res.error) {
+    entry.status = "error";
+    entry.statusText = res.error;
+  } else {
+    entry.status = "done";
+    entry.savedPath = res.path;
+    entry.statusText = t("savedTo", res.path);
+  }
+  renderDownloadsList();
+}
+
 const DOWNLOAD_RATE_LIMIT = 10;
 const DOWNLOAD_RATE_WINDOW_MS = 60000;
 
@@ -516,6 +586,30 @@ downloadAllBtn.addEventListener("click", async () => {
   if (!queued.length) return;
 
   goToDownloads();
+
+  if (desktopApi) {
+    // One folder pick for the whole batch; no client-side pacing (the
+    // desktop server doesn't rate-limit).
+    let folder;
+    try {
+      folder = await desktopApi.pick_folder();
+    } catch (e) {
+      folder = null;
+    }
+    if (!folder) {
+      queued.forEach((entry) => {
+        entry.status = "cancelled";
+        entry.statusText = t("cancelled");
+      });
+      renderDownloadsList();
+      return;
+    }
+    for (const entry of queued) {
+      await runDesktopDownload(entry, folder);
+    }
+    return;
+  }
+
   const startTimes = [];
   for (const entry of queued) {
     await waitForDownloadSlot(startTimes, entry);

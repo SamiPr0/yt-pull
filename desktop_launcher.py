@@ -19,15 +19,21 @@ Backend changes (anything under `app/*.py`) still need a new exe release.
 from __future__ import annotations
 
 import ctypes
+import json
 import os
 import secrets
 import shutil
+import subprocess
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
+from urllib.parse import quote
 
-PAGES_UI_BASE = "https://samipr0.github.io/yt-pull/app/"
+import webview
+
+PAGES_UI_BASE = os.environ.get("YTPULL_UI_BASE") or "https://samipr0.github.io/yt-pull/app/"
 
 UI_FILES = [
     "index.html",
@@ -144,14 +150,116 @@ def _wait_for_local_server(url: str) -> bool:
     return False
 
 
+class _Cancelled(Exception):
+    pass
+
+
+class _Api:
+    """Exposed to the page as ``window.pywebview.api``. WebView2 silently
+    drops blob / ``<a download>`` saves, so the desktop UI hands the download
+    here instead: a native Save (or folder) dialog, then the mp4 is streamed
+    from the local API straight to that path, with progress pushed back to
+    ``window.__ytpullProgress``."""
+
+    def __init__(self, base_url: str, token: str) -> None:
+        self._base = base_url
+        self._token = token
+        self.window: object | None = None
+        self._cancel = False
+
+    def cancel(self) -> None:
+        self._cancel = True
+
+    def pick_folder(self):
+        picked = self.window.create_file_dialog(webview.FOLDER_DIALOG)
+        return picked[0] if picked else None
+
+    def reveal(self, path: str) -> None:
+        try:
+            subprocess.Popen(["explorer", f"/select,{os.path.normpath(path)}"])
+        except Exception:
+            pass
+
+    def download(
+        self,
+        video_url: str,
+        quality: str,
+        lang: str,
+        suggested_name: str,
+        folder: str | None = None,
+    ) -> dict:
+        """`folder` set → save straight into it (batch); otherwise a Save As
+        dialog. Returns {"path": ...} | {"cancelled": True} | {"error": ...}."""
+        self._cancel = False
+        if folder:
+            dest = os.path.join(folder, suggested_name)
+        else:
+            picked = self.window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=suggested_name or "video.mp4",
+                file_types=("MP4 video (*.mp4)", "All files (*.*)"),
+            )
+            if not picked:
+                return {"cancelled": True}
+            dest = picked if isinstance(picked, str) else picked[0]
+
+        api_url = (
+            f"{self._base}/api/download?url={quote(video_url, safe='')}"
+            f"&quality={quote(quality or 'best')}&lang={quote(lang or 'en')}"
+        )
+        req = urllib.request.Request(api_url, headers={"X-YTPull-Token": self._token})
+        try:
+            with urllib.request.urlopen(req) as resp, open(dest, "wb") as out:
+                total = int(resp.headers.get("Content-Length") or 0)
+                got = 0
+                while True:
+                    if self._cancel:
+                        raise _Cancelled
+                    chunk = resp.read(262144)
+                    if not chunk:
+                        break
+                    out.write(chunk)
+                    got += len(chunk)
+                    self._progress(got, total)
+        except _Cancelled:
+            self._discard(dest)
+            return {"cancelled": True}
+        except urllib.error.HTTPError as exc:
+            self._discard(dest)
+            try:
+                return {"error": json.loads(exc.read()).get("detail") or f"HTTP {exc.code}"}
+            except Exception:
+                return {"error": f"HTTP {exc.code}"}
+        except Exception as exc:  # noqa: BLE001
+            self._discard(dest)
+            return {"error": str(exc)}
+        return {"path": dest}
+
+    def _progress(self, got: int, total: int) -> None:
+        try:
+            self.window.evaluate_js(
+                f"window.__ytpullProgress && window.__ytpullProgress({got},{total})"
+            )
+        except Exception:
+            pass
+
+    @staticmethod
+    def _discard(path: str) -> None:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
 def main() -> None:
     _redirect_output_to_logfile()
     _prepend_bundled_ffmpeg_to_path()
     os.environ["YTPULL_UI_DIR"] = _sync_ui_from_pages()
-    os.environ["YTPULL_TOKEN"] = secrets.token_urlsafe(24)
 
     port = 8000
     url = f"http://127.0.0.1:{port}"
+    token = secrets.token_urlsafe(24)
+    os.environ["YTPULL_TOKEN"] = token
     print("yt-pull starting...")
 
     import uvicorn
@@ -170,10 +278,12 @@ def main() -> None:
         )
         return
 
+    api = _Api(url, token)
     try:
-        import webview
-
-        webview.create_window("yt-pull", url, width=1180, height=860, min_size=(900, 640))
+        window = webview.create_window(
+            "yt-pull", url, js_api=api, width=1180, height=860, min_size=(900, 640)
+        )
+        api.window = window
         webview.start()  # blocks until the window is closed
     except Exception as exc:  # noqa: BLE001
         print(f"webview failed: {exc!r}")

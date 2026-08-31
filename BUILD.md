@@ -44,7 +44,7 @@ Repo **Settings → Pages → Deploy from a branch → `main` / `/docs`**. This 
 - `https://<owner>.github.io/yt-pull/` — the landing page (`docs/index.html`)
 - `https://<owner>.github.io/yt-pull/app/` — the app UI the exe fetches (`docs/app/`)
 
-If your GitHub username isn't `SamiPr0`, update `PAGES_UI_BASE` in [`desktop_launcher.py`](desktop_launcher.py).
+If your GitHub username isn't `SamiPr0`, update `PAGES_UI_BASE` in [`desktop_launcher.py`](desktop_launcher.py) (or set the `YTPULL_UI_BASE` env var, handy for testing against a local server).
 
 ## Distributing it
 

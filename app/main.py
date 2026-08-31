@@ -45,6 +45,13 @@ def _guard(request: Request, lang: str | None = None) -> None:
         raise HTTPException(status_code=403, detail=t("cross_origin", lang))
 
 
+def _rate_limit(request: Request, bucket: str, per_minute: int, lang: str | None) -> None:
+    # The desktop build (token set) is one user on their own machine — rate
+    # limiting there is pointless and gets in the way of batch downloads.
+    if EXPECTED_TOKEN is None:
+        ratelimit.enforce(request, bucket, max_requests=per_minute, window_seconds=60, lang=lang)
+
+
 @app.on_event("startup")
 def _startup() -> None:
     downloader.cleanup_orphaned_temp_dirs()
@@ -56,7 +63,7 @@ def resolve(payload: ResolveRequest, request: Request):
     flat list of downloadable items with their available qualities."""
     lang = payload.lang
     _guard(request, lang)
-    ratelimit.enforce(request, "resolve", max_requests=20, window_seconds=60, lang=lang)
+    _rate_limit(request, "resolve", 20, lang)
 
     urls = [u for u in payload.urls if u and u.strip()]
     if not urls:
@@ -77,7 +84,7 @@ def download(
     build it is deleted immediately after the response finishes sending —
     nothing is kept on the server afterwards."""
     _guard(request, lang)
-    ratelimit.enforce(request, "download", max_requests=10, window_seconds=60, lang=lang)
+    _rate_limit(request, "download", 10, lang)
 
     try:
         filepath, filename, tmpdir = downloader.download_to_temp(url, quality, lang)
