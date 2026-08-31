@@ -34,6 +34,9 @@ from urllib.parse import quote
 import webview
 
 
+_CTXMENU_PATCH_OK = False
+
+
 def _allow_contextmenu_event() -> None:
     """pywebview sets AreDefaultContextMenusEnabled = debug, and with it
     FALSE the WebView2 swallows right-clicks entirely — the page never gets
@@ -53,6 +56,8 @@ def _allow_contextmenu_event() -> None:
                 pass
 
         _ec.EdgeChrome.on_webview_ready = _ready
+        global _CTXMENU_PATCH_OK
+        _CTXMENU_PATCH_OK = True
     except Exception:
         pass
 
@@ -342,7 +347,7 @@ def main() -> None:
         os._exit(0)
 
     _redirect_output_to_logfile()
-    print("yt-pull starting...")
+    print(f"yt-pull starting... (contextmenu patch: {_CTXMENU_PATCH_OK})")
     _prepend_bundled_ffmpeg_to_path()
     os.environ["YTPULL_UI_DIR"] = _sync_ui_from_pages()
 
