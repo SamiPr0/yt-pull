@@ -75,14 +75,18 @@ function suggestedFilename(title) {
     };
   }
 
-  urlsEl.addEventListener("contextmenu", (e) => {
+  document.addEventListener("contextmenu", (e) => {
     if (!desktopApi) return; // browser: keep its native menu
-    e.preventDefault();
-    menu.textContent = t("paste");
-    menu.onclick = pasteInto(urlsEl);
-    menu.style.left = `${e.clientX}px`;
-    menu.style.top = `${e.clientY}px`;
-    menu.classList.remove("hidden");
+    e.preventDefault(); // desktop: never show WebView2's native menu
+    if (e.target === urlsEl) {
+      menu.textContent = t("paste");
+      menu.onclick = pasteInto(urlsEl);
+      menu.style.left = `${Math.min(e.clientX, innerWidth - 120)}px`;
+      menu.style.top = `${Math.min(e.clientY, innerHeight - 40)}px`;
+      menu.classList.remove("hidden");
+    } else {
+      hide();
+    }
   });
   document.addEventListener("click", (e) => { if (e.target !== menu) hide(); });
   document.addEventListener("scroll", hide, true);

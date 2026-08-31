@@ -34,6 +34,31 @@ from urllib.parse import quote
 import webview
 
 
+def _allow_contextmenu_event() -> None:
+    """pywebview sets AreDefaultContextMenusEnabled = debug, and with it
+    FALSE the WebView2 swallows right-clicks entirely — the page never gets
+    a `contextmenu` DOM event, so our own "Paste" menu can't appear. Flip
+    just that setting back on (not devtools / F5 / F12 like debug=True): the
+    page's own handler preventDefault()s the native menu anyway."""
+    try:
+        from webview.platforms import edgechromium as _ec
+
+        _orig = _ec.EdgeChrome.on_webview_ready
+
+        def _ready(self, sender, args):
+            _orig(self, sender, args)
+            try:
+                sender.CoreWebView2.Settings.AreDefaultContextMenusEnabled = True
+            except Exception:
+                pass
+
+        _ec.EdgeChrome.on_webview_ready = _ready
+    except Exception:
+        pass
+
+
+_allow_contextmenu_event()
+
 PAGES_UI_BASE = os.environ.get("YTPULL_UI_BASE") or "https://samipr0.github.io/yt-pull/app/"
 
 UI_FILES = [
