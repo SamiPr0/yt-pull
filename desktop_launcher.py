@@ -354,14 +354,13 @@ def main() -> None:
         _error_box(WEBVIEW2_HELP)
         os._exit(1)
 
-    # The window is closed. sys.exit() lets pywebview's atexit hooks run
-    # (they delete its temp WebView2 data folder), but the uvicorn daemon
-    # thread and the .NET runtime can wedge a clean shutdown — so arm a
-    # hard-exit backstop first.
-    backstop = threading.Timer(4.0, lambda: os._exit(0))
-    backstop.daemon = True
-    backstop.start()
-    sys.exit(0)
+    # The window is closed. Returning would hang on uvicorn's daemon thread
+    # and the .NET runtime, so hard-exit. Downside: pywebview's own atexit
+    # cleanup of its temp WebView2 data folder (~15 MB in %TEMP%\tmp*) is
+    # skipped, so one accumulates per launch — cleared by Windows Storage
+    # Sense / Disk Cleanup. Sweeping it ourselves risks deleting a folder a
+    # still-running WebView2 has open, so we don't.
+    os._exit(0)
 
 
 if __name__ == "__main__":
