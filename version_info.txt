@@ -1,0 +1,36 @@
+# PyInstaller version resource for yt-pull.exe (see BUILD.md).
+# Giving the exe real Windows version metadata measurably lowers antivirus
+# false-positive scores versus a bare unsigned PyInstaller binary. Bump the
+# four version numbers on each release.
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(1, 0, 0, 0),
+    prodvers=(1, 0, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0),
+  ),
+  kids=[
+    StringFileInfo(
+      [
+        StringTable(
+          '040904B0',
+          [
+            StringStruct('CompanyName', 'Sami Kabbaj'),
+            StringStruct('FileDescription', 'yt-pull - YouTube downloader (runs locally)'),
+            StringStruct('FileVersion', '1.0.0.0'),
+            StringStruct('InternalName', 'yt-pull'),
+            StringStruct('LegalCopyright', 'MIT License. Built on yt-dlp.'),
+            StringStruct('OriginalFilename', 'yt-pull.exe'),
+            StringStruct('ProductName', 'yt-pull'),
+            StringStruct('ProductVersion', '1.0.0.0'),
+          ],
+        )
+      ]
+    ),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])]),
+  ],
+)

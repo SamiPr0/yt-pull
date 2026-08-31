@@ -42,6 +42,10 @@ MESSAGES = {
         "en": "Too many requests. Please slow down and try again in a minute.",
         "fr": "Trop de requêtes. Ralentis et réessaie dans une minute.",
     },
+    "cross_origin": {
+        "en": "This request must come from the yt-pull app.",
+        "fr": "Cette requête doit provenir de l'application yt-pull.",
+    },
     "untitled": {
         "en": "Untitled",
         "fr": "Sans titre",

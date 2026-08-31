@@ -28,28 +28,21 @@ ALLOWED_HOSTS = {
 DEFAULT_QUALITY_LADDER = ["2160p", "1440p", "1080p", "720p", "480p", "360p"]
 
 
-POT_PROVIDER_BINARY = "/usr/local/bin/bgutil-pot"
-
-
 def _base_ydl_opts() -> dict:
     """Options merged into every yt-dlp call.
 
     Deliberately does NOT force a specific `player_client`: yt-dlp's own
     default client negotiation reliably finds the full quality ladder
-    (1080p+) on its own, and an earlier attempt to hardcode a short client
-    list here (to work around Render's datacenter-IP bot-check) turned out
-    to both fail at that job AND silently cap everyone else — including
-    the desktop build, on a perfectly normal home IP — at 360p. Forcing a
-    specific client is a strictly worse default; don't reintroduce it.
+    (1080p+) on its own on a home connection, and an earlier attempt to
+    hardcode a short client list here turned out to silently cap the
+    desktop build at 360p. Forcing a specific client is a strictly worse
+    default; don't reintroduce it.
 
-    If the PO token provider binary happens to be present (bundled only in
-    the Docker image, for Render — see the Dockerfile), hand yt-dlp its
-    path so its own client logic can use it where it decides a token is
-    needed; this doesn't force any particular client.
+    Set YTDLP_COOKIES_FILE to a Netscape-format cookies export if YouTube
+    starts demanding sign-in on your connection (keep that file out of the
+    repo — it holds a logged-in session).
     """
     opts: dict = {}
-    if os.path.isfile(POT_PROVIDER_BINARY):
-        opts["extractor_args"] = {"youtubepot-bgutilcli": {"cli_path": [POT_PROVIDER_BINARY]}}
     cookies_file = os.environ.get("YTDLP_COOKIES_FILE")
     if cookies_file and Path(cookies_file).is_file():
         opts["cookiefile"] = cookies_file
