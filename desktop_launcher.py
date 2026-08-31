@@ -25,6 +25,7 @@ import secrets
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -139,6 +140,23 @@ def _sync_ui_from_pages() -> str:
         except Exception:
             use_frozen(name)
     return cache
+
+
+def _sweep_webview_temp_dirs() -> None:
+    """pywebview gives WebView2 a fresh %TEMP%\\tmp*/EBWebView user-data
+    folder each run and deletes it on a clean exit — but this app hard-exits
+    with os._exit(), which skips that. Sweep the leftovers on startup. One
+    still in use just fails to delete and is left alone; only dirs holding an
+    EBWebView folder (pywebview's) are touched."""
+    tmp = tempfile.gettempdir()
+    try:
+        names = os.listdir(tmp)
+    except OSError:
+        return
+    for name in names:
+        path = os.path.join(tmp, name)
+        if name.startswith("tmp") and os.path.isdir(os.path.join(path, "EBWebView")):
+            shutil.rmtree(path, ignore_errors=True)
 
 
 def _wait_for_local_server(url: str) -> bool:
@@ -318,6 +336,7 @@ def main() -> None:
 
     _redirect_output_to_logfile()
     print("yt-pull starting...")
+    _sweep_webview_temp_dirs()
     _prepend_bundled_ffmpeg_to_path()
     os.environ["YTPULL_UI_DIR"] = _sync_ui_from_pages()
 
@@ -348,10 +367,7 @@ def main() -> None:
             "yt-pull", url, js_api=api, width=1180, height=860, min_size=(900, 640)
         )
         api.window = window
-        # storage_path pins the WebView2 user-data folder to one fixed
-        # location instead of a fresh %TEMP%\tmp*/EBWebView per launch that
-        # our os._exit() then leaves behind. private_mode stays default.
-        webview.start(storage_path=os.path.join(_app_dir(), "webview"))  # blocks until closed
+        webview.start()  # blocks until the window is closed
     except Exception as exc:  # noqa: BLE001
         print(f"webview failed: {exc!r}")
         _error_box(WEBVIEW2_HELP)
