@@ -18,12 +18,11 @@ The download always runs on your own machine — YouTube blocks datacenter IPs h
 
 ## How it's put together
 
-There is no server to run. Two pieces:
+- **The work** — `app/` is a small FastAPI app (resolve links, download, mux with ffmpeg). It runs entirely on `127.0.0.1`, bundled inside `yt-pull.exe`. Nothing is uploaded, nothing is stored server-side.
+- **The UI** — static HTML/CSS/JS. The canonical copy lives in `app/static/`; `python sync_docs.py` mirrors it into `docs/`, which **GitHub Pages** publishes (landing page at `/`, app at `/app/`).
+- On launch the exe pulls that static UI from GitHub Pages into a local cache and serves it itself from `127.0.0.1:8000` — so the browser only ever talks to localhost, and a frontend change (`sync_docs.py` + `git push`) reaches every installed exe on its next launch with **no rebuild**. Only static files are fetched, never Python, so a repo compromise can't run code on users' machines. If Pages is unreachable the exe serves the copy frozen into it.
 
-- **UI** — static HTML/CSS/JS in `docs/`, hosted on **GitHub Pages**: the landing page at `/`, the app at `/app/`.
-- **The work** — `app/` is a small FastAPI app (resolve links, download, mux with ffmpeg). It ships frozen inside `yt-pull.exe` and listens on `127.0.0.1` only. The GitHub Pages app calls that local API back; the browser is just the window.
-
-A frontend change is a `git push` (run `python sync_docs.py` first) and reaches every installed exe on its next launch — **no rebuild**. Only a backend change needs a new exe release. See [BUILD.md](BUILD.md).
+Only a backend change needs a new exe release. See [BUILD.md](BUILD.md).
 
 ## Run the API locally (development)
 

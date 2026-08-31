@@ -1,31 +1,41 @@
 """Entry point for the packaged desktop build (see BUILD.md).
 
 Starts the FastAPI app (`app.main`) on localhost only, then opens the user's
-browser to the UI. Bundles its own ffmpeg so nothing needs to be installed
-by the person running the .exe.
+browser to it. Bundles its own ffmpeg so nothing needs to be installed by
+the person running the .exe.
 
-The UI (HTML/CSS/JS) is NOT the exe's job: it's hosted on GitHub Pages and
-opened from there, so a frontend change is a `git push` and reaches every
-already-distributed exe with no rebuild. The exe only ships the API — the
-part that talks to YouTube from the user's own connection — and that API is
-frozen at build time: nothing is ever fetched and executed at runtime, so a
-compromised repo can't push code onto users' machines. A backend change does
-need a new exe release.
+Before starting, it pulls the latest **static** UI (HTML/CSS/JS) from GitHub
+Pages into a local cache and points the server at it, so a frontend change
+is a `git push` and reaches every installed exe on its next launch with no
+rebuild. Only static assets are fetched — never Python — so there is no way
+for a repo compromise to run code on users' machines; the worst case is a
+tampered page, which is confined to the browser sandbox. If Pages is
+unreachable the server falls back to the copy of the UI frozen into this exe.
 
-If GitHub Pages is unreachable, we fall back to the copy of the UI frozen
-into this exe and served from the local server itself.
+Backend changes (anything under `app/*.py`) still need a new exe release.
 """
 from __future__ import annotations
 
 import os
 import secrets
+import shutil
 import sys
 import threading
 import time
 import urllib.request
 import webbrowser
 
-PAGES_URL = "https://samipr0.github.io/yt-pull/app/"
+PAGES_UI_BASE = "https://samipr0.github.io/yt-pull/app/"
+
+UI_FILES = [
+    "index.html",
+    "app.js",
+    "style.css",
+    "i18n.js",
+    "favicon.svg",
+    "favicon.ico",
+    "og-image.png",
+]
 
 
 def _resource_dir() -> str:
@@ -40,50 +50,78 @@ def _prepend_bundled_ffmpeg_to_path() -> None:
         os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
 
 
-def _wait_for_local_server(base_url: str) -> None:
+def _ui_cache_dir() -> str:
+    base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    path = os.path.join(base, "yt-pull", "ui_cache")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def _fetch(name: str, timeout: float) -> bytes:
+    with urllib.request.urlopen(PAGES_UI_BASE + name, timeout=timeout) as resp:
+        return resp.read()
+
+
+def _sync_ui_from_pages() -> str:
+    """Refresh the local UI cache from GitHub Pages (static files only).
+
+    Any file that can't be fetched keeps its previous cached copy, or falls
+    back to the one frozen into this exe. Always returns a usable directory.
+    A failed first fetch is taken as "offline" — fall straight back to the
+    frozen copy instead of timing out on every file.
+    """
+    cache = _ui_cache_dir()
+    frozen = os.path.join(_resource_dir(), "app", "static")
+
+    def use_frozen(name: str) -> None:
+        dest = os.path.join(cache, name)
+        if not os.path.isfile(dest):
+            src = os.path.join(frozen, name)
+            if os.path.isfile(src):
+                shutil.copyfile(src, dest)
+
+    try:
+        first = _fetch(UI_FILES[0], 2.0)
+    except Exception:
+        for name in UI_FILES:
+            use_frozen(name)
+        return cache
+
+    with open(os.path.join(cache, UI_FILES[0]), "wb") as f:
+        f.write(first)
+    for name in UI_FILES[1:]:
+        try:
+            data = _fetch(name, 2.0)
+            with open(os.path.join(cache, name), "wb") as f:
+                f.write(data)
+        except Exception:
+            use_frozen(name)
+    return cache
+
+
+def _open_browser_when_ready(url: str) -> None:
     for _ in range(100):  # ~20s max
         try:
-            urllib.request.urlopen(base_url + "/api/health", timeout=0.5)
-            return
+            urllib.request.urlopen(url + "/api/health", timeout=0.5)
+            break
         except Exception:
             time.sleep(0.2)
-
-
-def _pick_ui_url(local_url: str) -> str:
-    """Prefer the GitHub Pages UI; fall back to the frozen copy served by the
-    local server if Pages can't be reached (offline, outage, blocked)."""
-    try:
-        urllib.request.urlopen(PAGES_URL, timeout=3)
-        return PAGES_URL
-    except Exception:
-        return local_url
-
-
-def _open_browser_when_ready(local_url: str, token: str) -> None:
-    _wait_for_local_server(local_url)
-    url = _pick_ui_url(local_url)
-    # The Pages UI can only receive the launch token through the URL fragment
-    # (the local fallback gets it injected server-side, so it doesn't need it
-    # here — but appending it is harmless).
-    webbrowser.open(f"{url}#t={token}")
+    webbrowser.open(url)
 
 
 def main() -> None:
     _prepend_bundled_ffmpeg_to_path()
-    token = secrets.token_urlsafe(24)
-    os.environ["YTPULL_TOKEN"] = token
+    os.environ["YTPULL_UI_DIR"] = _sync_ui_from_pages()
+    os.environ["YTPULL_TOKEN"] = secrets.token_urlsafe(24)
 
     port = 8000
-    local_url = f"http://127.0.0.1:{port}"
+    url = f"http://127.0.0.1:{port}"
 
     print("yt-pull is starting...")
     print("Keep this window open while you use the app - close it to stop.")
-    print(f"  App:                    {PAGES_URL}")
-    print(f"  Offline / fallback UI:  {local_url}")
+    print(f"If your browser doesn't open automatically, go to: {url}")
 
-    threading.Thread(
-        target=_open_browser_when_ready, args=(local_url, token), daemon=True
-    ).start()
+    threading.Thread(target=_open_browser_when_ready, args=(url,), daemon=True).start()
 
     import uvicorn
 

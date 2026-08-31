@@ -21,28 +21,13 @@ const langButton = document.getElementById("langButton");
 const langButtonLabel = document.getElementById("langButtonLabel");
 const langMenu = document.getElementById("langMenu");
 
-// This page is served two ways: from the local desktop server itself and
-// from GitHub Pages. Either way the API — the part that actually talks to
-// YouTube — only ever runs on the user's own machine, so point every call
-// at the loopback server unless this page IS that server's origin.
-const LOCAL_API_ORIGINS = ["http://127.0.0.1:8000", "http://localhost:8000"];
-const API_BASE = LOCAL_API_ORIGINS.includes(location.origin) ? "" : "http://127.0.0.1:8000";
+// The page and the API are always served together from the local server
+// (127.0.0.1), so API calls are same-origin.
+const API_BASE = "";
 
-// Per-launch secret authorizing calls to the local API. The frozen fallback
-// UI gets it injected as window.__YTPULL_TOKEN__; the Pages UI gets it in the
-// URL fragment (#t=...) the launcher opens. Capture it before the app's own
-// hash routing runs, keep it for the session, and scrub it from the URL.
-const API_TOKEN = (() => {
-  if (typeof window.__YTPULL_TOKEN__ === "string") return window.__YTPULL_TOKEN__;
-  const m = location.hash.match(/[#&]t=([^&]+)/);
-  if (m) {
-    const token = decodeURIComponent(m[1]);
-    try { sessionStorage.setItem("ytpull_token", token); } catch (e) {}
-    history.replaceState(null, "", location.pathname + location.search);
-    return token;
-  }
-  try { return sessionStorage.getItem("ytpull_token") || ""; } catch (e) { return ""; }
-})();
+// Per-launch secret the desktop server injects into this page; authorizes
+// calls to the work endpoints. Empty on a plain `uvicorn` dev run.
+const API_TOKEN = typeof window.__YTPULL_TOKEN__ === "string" ? window.__YTPULL_TOKEN__ : "";
 
 function apiHeaders(extra) {
   const h = extra ? { ...extra } : {};

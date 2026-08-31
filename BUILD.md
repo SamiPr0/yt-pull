@@ -6,13 +6,13 @@ Why this exists: YouTube blocks datacenter IPs (Render, AWS, etc.) far more aggr
 
 ## How the split works
 
-The exe only ships the **API** (`/api/resolve`, `/api/download`, `/api/health`) plus a bundled ffmpeg. It starts that API on `127.0.0.1:8000` and opens the browser to the **UI hosted on GitHub Pages** (`https://<owner>.github.io/yt-pull/app/`), which calls the local API back.
+The exe runs the FastAPI app on `127.0.0.1:8000` and opens the browser there. On startup it pulls the **static UI** (`index.html`, `app.js`, `style.css`, `i18n.js`, favicons) from GitHub Pages (`https://<owner>.github.io/yt-pull/app/`) into `%LOCALAPPDATA%\yt-pull\ui_cache` and serves it from that local server — the browser only ever talks to localhost.
 
 - **Frontend change** (HTML/CSS/JS, i18n, copy): run `python sync_docs.py`, commit `docs/`, push. Live for every already-distributed exe on its next launch — **no rebuild**.
-- **Backend change** (the 3 endpoints, `downloader.py`, ...): rebuild the exe and cut a new Release. Rare — the API surface is small and stable.
-- Nothing is fetched and executed at runtime, so a compromised repo can't push code onto users' machines. The worst it could do is change the hosted page (browser-sandboxed).
-- The launcher generates a per-run secret token, hands it to the UI (URL fragment for Pages, injected `<script>` for the fallback), and the API rejects any call to `/api/resolve` or `/api/download` that doesn't echo it back — so another site can't drive a running local server.
-- If GitHub Pages is unreachable, the exe falls back to a copy of the UI frozen into it and served from `127.0.0.1:8000` directly. That copy is whatever `app/static/` held at build time, so keep `sync_docs.py` runs and exe rebuilds roughly in step.
+- **Backend change** (`app/*.py`): rebuild the exe and cut a new Release. Rare — the API surface is small and stable.
+- Only static files are ever fetched at runtime, never Python, so a repo compromise can't run code on users' machines. A tampered page is confined to the browser sandbox.
+- The launcher generates a per-run secret token and `app.main` injects it into the page it serves; the API rejects any call to `/api/resolve` or `/api/download` whose `Origin`/`Referer` isn't loopback or that doesn't echo the token back — so another site (or another local app's page) can't drive a running server.
+- If GitHub Pages is unreachable, the exe serves the copy of the UI frozen into it (`--add-data "app/static;app/static"`). Keep `sync_docs.py` runs and exe rebuilds roughly in step so that fallback isn't stale.
 
 `app/static/` is the source of truth; `sync_docs.py` mirrors it into `docs/` (landing page assets) and `docs/app/` (the full app UI, generated).
 
@@ -47,9 +47,9 @@ Notes on the flags:
 Repo **Settings → Pages → Deploy from a branch → `main` / `/docs`**. This serves:
 
 - `https://<owner>.github.io/yt-pull/` — the landing page (`docs/index.html`)
-- `https://<owner>.github.io/yt-pull/app/` — the app UI the exe opens (`docs/app/`)
+- `https://<owner>.github.io/yt-pull/app/` — the app UI the exe fetches (`docs/app/`)
 
-If your GitHub username isn't `SamiPr0`, update `PAGES_URL` in [`desktop_launcher.py`](desktop_launcher.py) and `PAGES_ORIGIN` in [`app/main.py`](app/main.py) (or set the `YTPULL_PAGES_ORIGIN` env var).
+If your GitHub username isn't `SamiPr0`, update `PAGES_UI_BASE` in [`desktop_launcher.py`](desktop_launcher.py).
 
 ## Distributing it
 
