@@ -19,7 +19,7 @@ VSVersionInfo(
         StringTable(
           '040904B0',
           [
-            StringStruct('CompanyName', 'Sami Kabbaj'),
+            StringStruct('CompanyName', 'yt-pull'),
             StringStruct('FileDescription', 'yt-pull - YouTube downloader (runs locally)'),
             StringStruct('FileVersion', '1.0.0.0'),
             StringStruct('InternalName', 'yt-pull'),
