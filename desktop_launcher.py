@@ -150,6 +150,22 @@ def _wait_for_local_server(url: str) -> bool:
     return False
 
 
+_SINGLE_INSTANCE_HANDLE = None
+
+
+def _is_only_instance() -> bool:
+    """Race-free single-instance guard via a named mutex. A second launch
+    would just fail to bind port 8000 and confuse things. The handle is kept
+    for the process lifetime; Windows frees it automatically on exit/crash."""
+    global _SINGLE_INSTANCE_HANDLE
+    try:
+        kernel32 = ctypes.windll.kernel32
+        _SINGLE_INSTANCE_HANDLE = kernel32.CreateMutexW(None, False, "Local\\yt-pull-singleton")
+        return kernel32.GetLastError() != 183  # ERROR_ALREADY_EXISTS
+    except Exception:
+        return True  # never let the guard itself block startup
+
+
 class _Cancelled(Exception):
     pass
 
@@ -261,6 +277,11 @@ class _Api:
 
 def main() -> None:
     _redirect_output_to_logfile()
+
+    if not _is_only_instance():
+        _error_box("yt-pull is already running.\n\nCheck for its window (or the taskbar).")
+        os._exit(0)
+
     _prepend_bundled_ffmpeg_to_path()
     os.environ["YTPULL_UI_DIR"] = _sync_ui_from_pages()
 

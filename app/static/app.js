@@ -376,7 +376,7 @@ function renderDownloadRow(entry) {
       <div class="progress-track ${entry.status === "error" ? "error" : ""} ${isIndeterminate(entry) ? "indeterminate" : ""}">
         <div class="progress-fill" style="width:${pct}%"></div>
       </div>
-      <p class="progress-label">${escapeHtml(entry.statusText)}</p>
+      <p class="progress-label${entry.savedPath ? " saved-path" : ""}"${entry.savedPath ? ` title="${escapeHtml(entry.savedPath)}"` : ""}>${escapeHtml(entry.statusText)}</p>
     </div>`;
 }
 
