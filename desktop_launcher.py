@@ -33,6 +33,32 @@ from urllib.parse import quote
 
 import webview
 
+
+def _enable_webview_context_menu() -> None:
+    """pywebview gates the WebView2 right-click menu behind debug mode
+    (edgechromium.py: AreDefaultContextMenusEnabled = _state['debug']). Users
+    need it to paste a link, so turn just that back on — without enabling
+    devtools / F5 / F12 the way debug=True would. Best-effort: a pywebview
+    change that breaks this just means no right-click menu, not a crash."""
+    try:
+        from webview.platforms import edgechromium as _ec
+
+        _orig_ready = _ec.EdgeChrome.on_webview_ready
+
+        def _ready(self, sender, args):
+            _orig_ready(self, sender, args)
+            try:
+                sender.CoreWebView2.Settings.AreDefaultContextMenusEnabled = True
+            except Exception:
+                pass
+
+        _ec.EdgeChrome.on_webview_ready = _ready
+    except Exception:
+        pass
+
+
+_enable_webview_context_menu()
+
 PAGES_UI_BASE = os.environ.get("YTPULL_UI_BASE") or "https://samipr0.github.io/yt-pull/app/"
 
 UI_FILES = [

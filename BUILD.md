@@ -14,6 +14,8 @@ The exe runs the FastAPI app on `127.0.0.1:8000` and shows it in a native window
 - The launcher generates a per-run secret token and `app.main` injects it into the page it serves; the API rejects any call to `/api/resolve` or `/api/download` whose `Origin`/`Referer` isn't loopback or that doesn't echo the token back — so another site (or another local app's page) can't drive a running server.
 - If GitHub Pages is unreachable, the exe serves the copy of the UI frozen into it (`--add-data "app/static;app/static"`). Keep `sync_docs.py` runs and exe rebuilds roughly in step so that fallback isn't stale.
 - The exe is **windowed** (no console). Status and errors go to `%LOCALAPPDATA%\yt-pull\log.txt`; fatal problems (server won't start, WebView2 missing) also raise a message box.
+- Only one instance runs at a time (a named mutex; a second launch shows "already running" and exits). Closing the window ends every process.
+- `pywebview` is pinned (`==6.2.1`): `desktop_launcher.py` monkeypatches one pywebview internal to re-enable the right-click menu (pywebview otherwise gates it behind debug mode, so users can't paste a link). Re-check that patch when bumping pywebview.
 
 `app/static/` is the source of truth; `sync_docs.py` mirrors it into `docs/` (landing page assets) and `docs/app/` (the full app UI, generated).
 
