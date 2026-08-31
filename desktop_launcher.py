@@ -34,12 +34,16 @@ from urllib.parse import quote
 import webview
 
 
+_CTXMENU_PATCHED = False
+
+
 def _enable_webview_context_menu() -> None:
     """pywebview gates the WebView2 right-click menu behind debug mode
     (edgechromium.py: AreDefaultContextMenusEnabled = _state['debug']). Users
     need it to paste a link, so turn just that back on — without enabling
     devtools / F5 / F12 the way debug=True would. Best-effort: a pywebview
     change that breaks this just means no right-click menu, not a crash."""
+    global _CTXMENU_PATCHED
     try:
         from webview.platforms import edgechromium as _ec
 
@@ -53,6 +57,7 @@ def _enable_webview_context_menu() -> None:
                 pass
 
         _ec.EdgeChrome.on_webview_ready = _ready
+        _CTXMENU_PATCHED = True
     except Exception:
         pass
 
@@ -308,6 +313,7 @@ def main() -> None:
         os._exit(0)
 
     _redirect_output_to_logfile()
+    print(f"yt-pull starting... (right-click menu patch: {_CTXMENU_PATCHED})")
     _prepend_bundled_ffmpeg_to_path()
     os.environ["YTPULL_UI_DIR"] = _sync_ui_from_pages()
 
@@ -315,7 +321,6 @@ def main() -> None:
     url = f"http://127.0.0.1:{port}"
     token = secrets.token_urlsafe(24)
     os.environ["YTPULL_TOKEN"] = token
-    print("yt-pull starting...")
 
     import uvicorn
 
