@@ -28,17 +28,18 @@ Download a static Windows `ffmpeg.exe` (e.g. from [gyan.dev](https://www.gyan.de
 pyinstaller --onefile --name yt-pull --console --noupx \
   --icon "app/static/favicon.ico" \
   --version-file "version_info.txt" \
+  --exclude-module watchfiles --exclude-module httptools --exclude-module websockets \
   --add-data "app/static;app/static" \
   --add-data "<path-to-ffmpeg.exe>;." \
   desktop_launcher.py
 ```
 
-(A generated `yt-pull.spec` with these settings baked in is gitignored; `pyinstaller yt-pull.spec` reuses it.)
+(A generated `yt-pull.spec` with these settings baked in is gitignored; `pyinstaller yt-pull.spec` reuses it — regenerate it with the command above if you change the flags.)
 
 The result is `dist/yt-pull.exe` (~120-170 MB — Python, yt-dlp, and ffmpeg all bundled in). `build/` and `dist/` are gitignored; rebuild locally rather than committing the binary — it's also too big for a normal git push (GitHub's 100MB limit).
 
 Notes on the flags:
-- `--noupx` and `--version-file` are there to keep antivirus false positives down — see below. Don't drop them without reading that section.
+- `--noupx`, `--version-file`, and the `--exclude-module` set are there to keep antivirus false positives (and size) down — see below. Don't drop them without reading that section.
 - `--add-data "app/static;app/static"` is the offline fallback UI. Run `python sync_docs.py` before building so it matches what's on Pages.
 
 ## GitHub Pages setup (one time)
@@ -75,7 +76,7 @@ Mitigations already applied in the build command / spec:
 
 - **No UPX packing** (`--noupx`, `upx=False`). UPX is a top false-positive trigger.
 - **Real version metadata** (`--version-file version_info.txt`). Bump the version numbers in that file each release.
-- **Plain `uvicorn`** (not `uvicorn[standard]`) in `requirements.txt`, so the Rust `watchfiles` binary and the `httptools` C extension are never bundled — less heuristic surface, smaller exe. The launcher only needs `uvicorn.run()` with defaults.
+- **`--exclude-module watchfiles httptools websockets`** — uvicorn's "standard" extras, unused by the launcher. `requirements.txt` also pins plain `uvicorn`, but the exclude is what matters on a machine that once installed `uvicorn[standard]` (PyInstaller bundles from the environment). `watchfiles` in particular ships a Rust binary that worsens heuristics.
 
 If detections still happen:
 
