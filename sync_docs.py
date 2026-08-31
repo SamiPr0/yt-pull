@@ -38,7 +38,7 @@ def _for_pages(html: str) -> str:
     """Adapt app/static/index.html for GitHub Pages:
     - root-absolute paths ("/style.css") resolve wrong under /yt-pull/, so
       make them relative;
-    - og:image / twitter:image must be absolute URLs for link previews.
+    - og:image must be an absolute URL for link previews.
     """
     html = re.sub(r'(href|src)="/(?!/)', r'\1="', html)
     html = html.replace(
