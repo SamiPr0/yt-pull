@@ -11,7 +11,7 @@ docs/app/        -> the actual app UI, opened by the desktop exe from
                     https://<user>.github.io/yt-pull/app/ ; fully generated here
 
 app/static/ stays the source of truth (it's what the exe freezes as an
-offline fallback, and what Render serves). This script just mirrors it.
+offline fallback). This script just mirrors it.
 """
 from __future__ import annotations
 
@@ -24,6 +24,10 @@ STATIC = ROOT / "app" / "static"
 DOCS = ROOT / "docs"
 DOCS_APP = DOCS / "app"
 
+# Where GitHub Pages serves docs/app/ from. Used to make the link-preview
+# meta tags absolute (social scrapers don't resolve relative image URLs).
+APP_PAGES_URL = "https://samipr0.github.io/yt-pull/app/"
+
 # Assets the app page needs, copied verbatim (none reference absolute paths).
 APP_ASSETS = ["app.js", "style.css", "i18n.js", "favicon.svg", "favicon.ico", "og-image.png"]
 # Assets the landing page needs (subset, same files).
@@ -31,9 +35,22 @@ LANDING_ASSETS = ["style.css", "i18n.js", "favicon.svg", "og-image.png"]
 
 
 def _for_pages(html: str) -> str:
-    """GitHub Pages serves this repo under /yt-pull/..., so root-absolute
-    paths ("/style.css") resolve wrong. Make them relative."""
-    return re.sub(r'(href|src)="/(?!/)', r'\1="', html)
+    """Adapt app/static/index.html for GitHub Pages:
+    - root-absolute paths ("/style.css") resolve wrong under /yt-pull/, so
+      make them relative;
+    - og:image / twitter:image must be absolute URLs for link previews.
+    """
+    html = re.sub(r'(href|src)="/(?!/)', r'\1="', html)
+    html = html.replace(
+        'content="og-image.png"', f'content="{APP_PAGES_URL}og-image.png"'
+    )
+    html = html.replace(
+        '<meta property="og:type" content="website" />',
+        '<meta property="og:type" content="website" />\n'
+        f'<meta property="og:url" content="{APP_PAGES_URL}" />',
+        1,
+    )
+    return html
 
 
 def main() -> None:
