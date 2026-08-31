@@ -4,7 +4,7 @@ Free YouTube downloader — paste a link, pick a quality, get an MP4. Single vid
 
 **[Download for Windows](https://github.com/SamiPr0/yt-pull/releases/latest/download/yt-pull.exe)**  ·  **[Web page](https://samipr0.github.io/yt-pull/)**
 
-The download always runs on your own machine — YouTube blocks datacenter IPs hard, home connections barely at all. The Windows app is a single file: double-click it, your browser opens, done. No install, no Python, no ffmpeg to set up. Build/release details in [BUILD.md](BUILD.md).
+The download always runs on your own machine — YouTube blocks datacenter IPs hard, home connections barely at all. The Windows app is a single file: double-click it and it opens in its own window. No install, no Python, no ffmpeg to set up. Build/release details in [BUILD.md](BUILD.md).
 
 ## Features
 
@@ -20,7 +20,7 @@ The download always runs on your own machine — YouTube blocks datacenter IPs h
 
 - **The work** — `app/` is a small FastAPI app (resolve links, download, mux with ffmpeg). It runs entirely on `127.0.0.1`, bundled inside `yt-pull.exe`. Nothing is uploaded, nothing is stored server-side.
 - **The UI** — static HTML/CSS/JS. The canonical copy lives in `app/static/`; `python sync_docs.py` mirrors it into `docs/`, which **GitHub Pages** publishes (landing page at `/`, app at `/app/`).
-- On launch the exe pulls that static UI from GitHub Pages into a local cache and serves it itself from `127.0.0.1:8000` — so the browser only ever talks to localhost, and a frontend change (`sync_docs.py` + `git push`) reaches every installed exe on its next launch with **no rebuild**. Only static files are fetched, never Python, so a repo compromise can't run code on users' machines. If Pages is unreachable the exe serves the copy frozen into it.
+- On launch the exe pulls that static UI from GitHub Pages into a local cache and serves it itself from `127.0.0.1:8000`, shown in a native window (pywebview / Edge WebView2) — so the app only ever talks to localhost, and a frontend change (`sync_docs.py` + `git push`) reaches every installed exe on its next launch with **no rebuild**. Only static files are fetched, never Python, so a repo compromise can't run code on users' machines. If Pages is unreachable the exe serves the copy frozen into it.
 
 Only a backend change needs a new exe release. See [BUILD.md](BUILD.md).
 
