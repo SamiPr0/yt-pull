@@ -276,12 +276,12 @@ class _Api:
 
 
 def main() -> None:
-    _redirect_output_to_logfile()
-
+    # Before anything else, and before touching the shared log file.
     if not _is_only_instance():
         _error_box("yt-pull is already running.\n\nCheck for its window (or the taskbar).")
         os._exit(0)
 
+    _redirect_output_to_logfile()
     _prepend_bundled_ffmpeg_to_path()
     os.environ["YTPULL_UI_DIR"] = _sync_ui_from_pages()
 
