@@ -175,10 +175,18 @@ class _Api:
         return picked[0] if picked else None
 
     def reveal(self, path: str) -> None:
+        """Open the folder the file is in, with the file selected. `explorer
+        /select` only parses correctly when passed as one raw command string
+        (a quoted argv element breaks it); fall back to just opening the
+        folder."""
+        path = os.path.normpath(path)
         try:
-            subprocess.Popen(["explorer", f"/select,{os.path.normpath(path)}"])
+            subprocess.run(f'explorer /select,"{path}"', check=False)
         except Exception:
-            pass
+            try:
+                os.startfile(os.path.dirname(path) or ".")  # noqa: S606
+            except Exception:
+                pass
 
     def download(
         self,
