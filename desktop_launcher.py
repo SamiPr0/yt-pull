@@ -59,6 +59,8 @@ def _allow_contextmenu_event() -> None:
 
 _allow_contextmenu_event()
 
+VERSION = "1.1.1"
+
 PAGES_UI_BASE = os.environ.get("YTPULL_UI_BASE") or "https://samipr0.github.io/yt-pull/app/"
 
 UI_FILES = [
@@ -342,7 +344,7 @@ def main() -> None:
         os._exit(0)
 
     _redirect_output_to_logfile()
-    print("yt-pull starting...")
+    print(f"yt-pull v{VERSION} starting...")
     _prepend_bundled_ffmpeg_to_path()
     os.environ["YTPULL_UI_DIR"] = _sync_ui_from_pages()
 
@@ -370,7 +372,7 @@ def main() -> None:
     api = _Api(url, token)
     try:
         window = webview.create_window(
-            "yt-pull", url, js_api=api, width=1180, height=860, min_size=(900, 640)
+            f"yt-pull v{VERSION}", url, js_api=api, width=1180, height=860, min_size=(900, 640)
         )
         api.window = window
         webview.start()  # blocks until the window is closed

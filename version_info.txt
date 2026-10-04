@@ -4,8 +4,8 @@
 # four version numbers on each release.
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 0, 0, 0),
-    prodvers=(1, 0, 0, 0),
+    filevers=(1, 1, 1, 0),
+    prodvers=(1, 1, 1, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -21,12 +21,12 @@ VSVersionInfo(
           [
             StringStruct('CompanyName', 'yt-pull'),
             StringStruct('FileDescription', 'yt-pull - YouTube downloader (runs locally)'),
-            StringStruct('FileVersion', '1.0.0.0'),
+            StringStruct('FileVersion', '1.1.1.0'),
             StringStruct('InternalName', 'yt-pull'),
             StringStruct('LegalCopyright', 'MIT License. Built on yt-dlp.'),
             StringStruct('OriginalFilename', 'yt-pull.exe'),
             StringStruct('ProductName', 'yt-pull'),
-            StringStruct('ProductVersion', '1.0.0.0'),
+            StringStruct('ProductVersion', '1.1.1.0'),
           ],
         )
       ]
