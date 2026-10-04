@@ -46,6 +46,23 @@ if (window.pywebview && window.pywebview.api) {
   window.addEventListener("pywebviewready", () => { desktopApi = window.pywebview.api; }, { once: true });
 }
 
+// The server injects window.__YTPULL_TOKEN__ only into the page it serves to
+// the desktop window. If that's present but the pywebview bridge never shows
+// up (e.g. an outdated exe), a blob save would silently write nothing and
+// still say "Done" — so wait briefly, then refuse instead of faking success.
+const IN_DESKTOP_SHELL = typeof window.__YTPULL_TOKEN__ === "string" && window.__YTPULL_TOKEN__ !== "";
+async function ensureDesktopApi() {
+  if (desktopApi || !IN_DESKTOP_SHELL) return !!desktopApi;
+  for (let i = 0; i < 40 && !desktopApi; i++) {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.download) {
+      desktopApi = window.pywebview.api;
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return !!desktopApi;
+}
+
 function suggestedFilename(title) {
   const base = (title || "video").replace(/[\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim().slice(0, 150);
   return (base || "video") + ".mp4";
@@ -461,7 +478,13 @@ downloadsList.addEventListener("click", (e) => {
 });
 
 async function runDownload(entry, folder) {
-  if (desktopApi) return runDesktopDownload(entry, folder);
+  if (await ensureDesktopApi()) return runDesktopDownload(entry, folder);
+  if (IN_DESKTOP_SHELL) {
+    entry.status = "error";
+    entry.statusText = t("desktopBridgeMissing");
+    renderDownloadsList();
+    return;
+  }
 
   entry.status = "starting";
   entry.statusText = t("waitingForServer");
@@ -630,7 +653,7 @@ downloadAllBtn.addEventListener("click", async () => {
 
   goToDownloads();
 
-  if (desktopApi) {
+  if (await ensureDesktopApi()) {
     // One folder pick for the whole batch; no client-side pacing (the
     // desktop server doesn't rate-limit).
     let folder;
@@ -650,6 +673,15 @@ downloadAllBtn.addEventListener("click", async () => {
     for (const entry of queued) {
       await runDesktopDownload(entry, folder);
     }
+    return;
+  }
+
+  if (IN_DESKTOP_SHELL) {
+    queued.forEach((entry) => {
+      entry.status = "error";
+      entry.statusText = t("desktopBridgeMissing");
+    });
+    renderDownloadsList();
     return;
   }
 
